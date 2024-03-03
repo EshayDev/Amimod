@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		83D291652B94AA1D00ABD9C3 /* music.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83D291642B94AA1D00ABD9C3 /* music.xm */; };
 		83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32D2B42D2740094C668 /* AmimodApp.swift */; };
 		83DCD3302B42D2740094C668 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32F2B42D2740094C668 /* ContentView.swift */; };
 		83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD3312B42D2750094C668 /* Assets.xcassets */; };
@@ -14,7 +15,6 @@
 		83DCD3472B42D4820094C668 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD3462B42D4820094C668 /* AudioManager.swift */; };
 		83DCD34A2B42D6810094C668 /* libbass.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 83DCD3442B42D3F80094C668 /* libbass.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		83DCD34C2B42D7DD0094C668 /* HexPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD34B2B42D7DD0094C668 /* HexPatch.swift */; };
-		83DCD34E2B42EF5E0094C668 /* music.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD34D2B42EF5E0094C668 /* music.mod */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -32,6 +32,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		83D291642B94AA1D00ABD9C3 /* music.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = music.xm; sourceTree = "<group>"; };
 		83DCD32A2B42D2740094C668 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Amimod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83DCD32D2B42D2740094C668 /* AmimodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmimodApp.swift; sourceTree = "<group>"; };
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -42,7 +43,6 @@
 		83DCD3442B42D3F80094C668 /* libbass.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libbass.dylib; sourceTree = "<group>"; };
 		83DCD3462B42D4820094C668 /* AudioManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		83DCD34B2B42D7DD0094C668 /* HexPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HexPatch.swift; sourceTree = "<group>"; };
-		83DCD34D2B42EF5E0094C668 /* music.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = music.mod; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,7 +60,7 @@
 		83DCD3212B42D2740094C668 = {
 			isa = PBXGroup;
 			children = (
-				83DCD34D2B42EF5E0094C668 /* music.mod */,
+				83D291642B94AA1D00ABD9C3 /* music.xm */,
 				83DCD3432B42D3F80094C668 /* bass.h */,
 				83DCD3422B42D3F80094C668 /* bridging-header.h */,
 				83DCD3442B42D3F80094C668 /* libbass.dylib */,
@@ -150,7 +150,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */,
-				83DCD34E2B42EF5E0094C668 /* music.mod in Resources */,
+				83D291652B94AA1D00ABD9C3 /* music.xm in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -296,6 +296,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Amimod/Amimod.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -315,7 +316,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -331,6 +332,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = Amimod/Amimod.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
@@ -350,7 +352,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -2,15 +2,18 @@ import Foundation
 
 class HexPatch {
     func findAndReplaceHexStrings(in filePath: String, findHex: String, replaceHex: String) throws {
-        var fileData = try Data(contentsOf: URL(fileURLWithPath: filePath))
-        
-        guard let findData = try Data(hex: findHex), let replaceData = try Data(hex: replaceHex) else {
-            throw NSError(domain: "Invalid input", code: 0, userInfo: [NSLocalizedDescriptionKey: "Hex string is invalid."])
+        guard !findHex.isEmpty, !replaceHex.isEmpty else {
+            throw HexPatchError.emptyHexStrings
         }
-        
-        // Ensure that findData and replaceData have the same length
-        guard findData.count == replaceData.count else {
-            throw NSError(domain: "Invalid input", code: 0, userInfo: [NSLocalizedDescriptionKey: "Hex strings must have the same length for find and replace."])
+
+        guard findHex.count == replaceHex.count else {
+            throw HexPatchError.hexStringLengthMismatch
+        }
+
+        var fileData = try Data(contentsOf: URL(fileURLWithPath: filePath))
+            
+        guard let findData = try Data(hex: findHex), let replaceData = try Data(hex: replaceHex) else {
+            throw HexPatchError.invalidHexString
         }
         
         var index = fileData.startIndex
@@ -32,19 +35,45 @@ class HexPatch {
         }
         
         if !found {
-            throw NSError(domain: "Hex not found", code: 0, userInfo: [NSLocalizedDescriptionKey: "Hex string not found in the binary."])
+            throw HexPatchError.hexNotFound
         }
-        
+
         try fileData.write(to: URL(fileURLWithPath: filePath))
+    }
+
+    enum HexPatchError: Error {
+        case emptyHexStrings
+        case hexStringLengthMismatch
+        case invalidHexString
+        case hexNotFound
+        case invalidInput(description: String)
+        case invalidFilePath(description: String)
+
+        var localizedDescription: String {
+            switch self {
+            case .emptyHexStrings:
+                return "Hex fields cannot be empty."
+            case .hexStringLengthMismatch:
+                return "Hex strings must have the same length for find and replace."
+            case .invalidHexString:
+                return "One or more hex strings are invalid."
+            case .hexNotFound:
+                return "Hex string not found in the binary."
+            case let .invalidInput(description):
+                return description
+            case let .invalidFilePath(description):
+                return description
+            }
+        }
     }
 }
 
 extension Data {
     init?(hex: String) throws {
-        let hex = hex.replacingOccurrences(of: " ", with: "") // Remove spaces
+        let hex = hex.replacingOccurrences(of: " ", with: "")
         
         guard hex.count % 2 == 0 else {
-            throw NSError(domain: "Invalid input", code: 0, userInfo: [NSLocalizedDescriptionKey: "Hex string must have an even number of characters."])
+            throw HexPatch.HexPatchError.invalidInput(description: "Hex string must have an even number of characters.")
         }
         
         self.init()
@@ -54,7 +83,7 @@ extension Data {
             index = hex.index(index, offsetBy: 2)
             
             guard let byte = UInt8(hexByte, radix: 16) else {
-                throw NSError(domain: "Invalid input", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to convert hex byte '\(hexByte)' to an unsigned 8-bit integer."])
+                throw HexPatch.HexPatchError.invalidInput(description: "Unable to convert hex byte '\(hexByte)' to an unsigned 8-bit integer.")
             }
             
             self.append(byte)
