@@ -40,7 +40,7 @@ To use Amimod, follow these steps:
 ## License
 
 - This tool is provided for internal use within **TEAM EDiSO** and their associates.<br>
-- It is not intended for distribution to the general public. All rights reserved.
+- This repo can be forked and modified so long as original credit is given. All rights reserved.
 
 ## Credits
 - **Code:** [EshayDev](https://github.com/EshayDev/)
