@@ -96,7 +96,7 @@ Once you've either manually entered hex patterns or imported hex notes, click th
 
 ### Step 5: Monitoring Progress
 
-While the patch is being applied, a progress indicator will appear at the bottom of the window, informing you that the patching process is in progress (often not even noticeable due to the speed of newer Macs). Once completed, you'll receive a success or error n
+While the patch is being applied, a progress indicator will appear at the bottom of the window, informing you that the patching process is in progress (often not even noticeable due to the speed of newer Macs). Once completed, you'll receive a success or error notification.
 
 ## Requirements
 
