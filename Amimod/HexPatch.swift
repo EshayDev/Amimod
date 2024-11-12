@@ -1,92 +1,191 @@
 import Foundation
 
+struct HexPatchOperation: Identifiable {
+    let id = UUID()
+    let findHex: String
+    let replaceHex: String
+}
+
 class HexPatch {
-    func findAndReplaceHexStrings(in filePath: String, findHex: String, replaceHex: String) throws {
-        guard !findHex.isEmpty, !replaceHex.isEmpty else {
-            throw HexPatchError.emptyHexStrings
-        }
+    func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
+        var fileBytes = try [UInt8](Data(contentsOf: URL(fileURLWithPath: filePath)))
 
-        guard findHex.count == replaceHex.count else {
-            throw HexPatchError.hexStringLengthMismatch
-        }
-
-        var fileData = try Data(contentsOf: URL(fileURLWithPath: filePath))
+        var replacementRanges: [(Range<Int>, [UInt8])] = []
+        
+        for patch in patches {
+            let pattern = try parseHexPattern(patch.findHex)
+            let replacement = try parseReplacementHex(patch.replaceHex, pattern: pattern)
+            let matches = findPatternMatches(in: fileBytes, pattern: pattern)
             
-        guard let findData = try Data(hex: findHex), let replaceData = try Data(hex: replaceHex) else {
-            throw HexPatchError.invalidHexString
-        }
-        
-        var index = fileData.startIndex
-        var found = false
-        
-        while index < fileData.endIndex {
-            // Find the range of the pattern in the remaining data
-            if let range = fileData[index...].range(of: findData) {
-                // Replace the pattern with the replacement data
-                fileData.replaceSubrange(range, with: replaceData)
-                
-                // Move the index to the end of the replacement data
-                index = range.lowerBound + replaceData.count
-                found = true
-            } else {
-                // No more occurrences found, exit the loop
-                break
+            if matches.isEmpty {
+                throw HexPatchError.hexNotFound(description: "Pattern not found: \(patch.findHex)")
+            }
+            
+            for matchRange in matches {
+                replacementRanges.append((matchRange, replacement))
             }
         }
         
-        if !found {
-            throw HexPatchError.hexNotFound
+        for (range, replacement) in replacementRanges.sorted(by: { $0.0.lowerBound > $1.0.lowerBound }) {
+            fileBytes.replaceSubrange(range, with: replacement)
+        }
+        
+        try Data(fileBytes).write(to: URL(fileURLWithPath: filePath))
+    }
+    
+    func countTotalMatches(in filePath: String, patches: [HexPatchOperation]) throws -> Int {
+        let fileBytes = try [UInt8](Data(contentsOf: URL(fileURLWithPath: filePath)))
+        var totalMatches = 0
+        
+        for patch in patches {
+            let pattern = try parseHexPattern(patch.findHex)
+            let matches = findPatternMatches(in: fileBytes, pattern: pattern)
+            
+            totalMatches += matches.count
+        }
+        
+        return totalMatches
+    }
+    
+    private func parseHexPattern(_ hex: String) throws -> [UInt8?] {
+        let cleanHex = preprocessHexString(hex)
+        var pattern: [UInt8?] = []
+        
+        var index = cleanHex.startIndex
+        while index < cleanHex.endIndex {
+            guard let nextIndex = cleanHex.index(index, offsetBy: 2, limitedBy: cleanHex.endIndex) else {
+                break
+            }
+            
+            let byteRange = index..<nextIndex
+            let byteString = String(cleanHex[byteRange])
+            
+            index = nextIndex
+            
+            if byteString == "??" {
+                pattern.append(nil)
+            } else {
+                guard let byte = UInt8(byteString, radix: 16) else {
+                    throw HexPatchError.invalidHexString(description: "Invalid hex byte: \(byteString)")
+                }
+                pattern.append(byte)
+            }
+        }
+        
+        if index != cleanHex.endIndex {
+            throw HexPatchError.invalidInput(description: "Hex string has an odd number of characters.")
+        }
+        
+        return pattern
+    }
+    
+    private func parseReplacementHex(_ hex: String, pattern: [UInt8?]) throws -> [UInt8] {
+        let cleanHex = preprocessHexString(hex)
+        var replacement: [UInt8] = []
+        
+        var index = cleanHex.startIndex
+        while index < cleanHex.endIndex {
+            guard let nextIndex = cleanHex.index(index, offsetBy: 2, limitedBy: cleanHex.endIndex) else {
+                break
+            }
+            
+            let byteRange = index..<nextIndex
+            let byteString = String(cleanHex[byteRange])
+            
+            index = nextIndex
+            
+            if byteString == "??" {
+                throw HexPatchError.invalidHexString(description: "Replace hex cannot contain wildcards (??).")
+            }
+            
+            guard let byte = UInt8(byteString, radix: 16) else {
+                throw HexPatchError.invalidHexString(description: "Invalid hex byte in replacement: \(byteString)")
+            }
+            replacement.append(byte)
+        }
+        
+        if replacement.count != pattern.count {
+            throw HexPatchError.hexStringLengthMismatch(description: "Replace hex must have the same number of bytes as find hex.")
+        }
+        
+        if index != cleanHex.endIndex {
+            throw HexPatchError.invalidInput(description: "Hex string has an odd number of characters.")
+        }
+        
+        return replacement
+    }
+    
+    private func findPatternMatches(in data: [UInt8], pattern: [UInt8?]) -> [Range<Int>] {
+        var matches: [Range<Int>] = []
+        let patternLength = pattern.count
+        let dataCount = data.count
+
+        guard patternLength > 0, dataCount >= patternLength else {
+            return matches
         }
 
-        try fileData.write(to: URL(fileURLWithPath: filePath))
-    }
+        let fixedByteIndices = pattern.indices.filter { pattern[$0] != nil }
+        if fixedByteIndices.isEmpty {
+            for index in 0...(dataCount - patternLength) {
+                matches.append(index..<(index + patternLength))
+            }
+            return matches
+        }
 
+        let firstFixed = fixedByteIndices.first!
+        let firstByteValue = pattern[firstFixed]!
+
+        for index in 0...(dataCount - patternLength) {
+            if data[index + firstFixed] != firstByteValue {
+                continue
+            }
+
+            var isMatch = true
+            for offset in fixedByteIndices.dropFirst() {
+                if data[index + offset] != pattern[offset]! {
+                    isMatch = false
+                    break
+                }
+            }
+
+            if isMatch {
+                matches.append(index..<(index + patternLength))
+            }
+        }
+
+        return matches
+    }
+    
+    private func preprocessHexString(_ hex: String) -> String {
+        return hex.replacingOccurrences(of: " ", with: "").uppercased()
+    }
+    
     enum HexPatchError: Error {
         case emptyHexStrings
-        case hexStringLengthMismatch
-        case invalidHexString
-        case hexNotFound
+        case hexStringLengthMismatch(description: String)
+        case invalidHexString(description: String)
+        case hexNotFound(description: String)
+        case userCancelled(description: String)
         case invalidInput(description: String)
         case invalidFilePath(description: String)
-
+        
         var localizedDescription: String {
             switch self {
             case .emptyHexStrings:
                 return "Hex fields cannot be empty."
-            case .hexStringLengthMismatch:
-                return "Hex strings must have the same length for find and replace."
-            case .invalidHexString:
-                return "One or more hex strings are invalid."
-            case .hexNotFound:
-                return "Hex string not found in the binary."
-            case let .invalidInput(description):
+            case .hexStringLengthMismatch(let description):
                 return description
-            case let .invalidFilePath(description):
+            case .invalidHexString(let description):
+                return description
+            case .hexNotFound(let description):
+                return description
+            case .userCancelled(let description):
+                return description
+            case .invalidInput(let description):
+                return description
+            case .invalidFilePath(let description):
                 return description
             }
-        }
-    }
-}
-
-extension Data {
-    init?(hex: String) throws {
-        let hex = hex.replacingOccurrences(of: " ", with: "")
-        
-        guard hex.count % 2 == 0 else {
-            throw HexPatch.HexPatchError.invalidInput(description: "Hex string must have an even number of characters.")
-        }
-        
-        self.init()
-        var index = hex.startIndex
-        while index < hex.endIndex {
-            let hexByte = String(hex[index ..< hex.index(index, offsetBy: 2)])
-            index = hex.index(index, offsetBy: 2)
-            
-            guard let byte = UInt8(hexByte, radix: 16) else {
-                throw HexPatch.HexPatchError.invalidInput(description: "Unable to convert hex byte '\(hexByte)' to an unsigned 8-bit integer.")
-            }
-            
-            self.append(byte)
         }
     }
 }

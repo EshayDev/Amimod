@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		83D291652B94AA1D00ABD9C3 /* music.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83D291642B94AA1D00ABD9C3 /* music.xm */; };
+		83C25C7A2CE3107600476B5E /* music.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 83C25C792CE3107500476B5E /* music.mp3 */; };
 		83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32D2B42D2740094C668 /* AmimodApp.swift */; };
 		83DCD3302B42D2740094C668 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32F2B42D2740094C668 /* ContentView.swift */; };
 		83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD3312B42D2750094C668 /* Assets.xcassets */; };
@@ -32,7 +32,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		83D291642B94AA1D00ABD9C3 /* music.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = music.xm; sourceTree = "<group>"; };
+		83C25C792CE3107500476B5E /* music.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = music.mp3; sourceTree = "<group>"; };
 		83DCD32A2B42D2740094C668 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Amimod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83DCD32D2B42D2740094C668 /* AmimodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmimodApp.swift; sourceTree = "<group>"; };
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -60,7 +60,7 @@
 		83DCD3212B42D2740094C668 = {
 			isa = PBXGroup;
 			children = (
-				83D291642B94AA1D00ABD9C3 /* music.xm */,
+				83C25C792CE3107500476B5E /* music.mp3 */,
 				83DCD3432B42D3F80094C668 /* bass.h */,
 				83DCD3422B42D3F80094C668 /* bridging-header.h */,
 				83DCD3442B42D3F80094C668 /* libbass.dylib */,
@@ -150,7 +150,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */,
-				83D291652B94AA1D00ABD9C3 /* music.xm in Resources */,
+				83C25C7A2CE3107600476B5E /* music.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -319,7 +319,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -356,7 +356,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
