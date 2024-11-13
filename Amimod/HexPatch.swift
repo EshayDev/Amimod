@@ -10,7 +10,7 @@ class HexPatch {
     func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
         var fileBytes = try [UInt8](Data(contentsOf: URL(fileURLWithPath: filePath)))
 
-        var replacementRanges: [(Range<Int>, [UInt8])] = []
+        var replacementRanges: [(Range<Int>, [UInt8?])] = []
         
         for patch in patches {
             let pattern = try parseHexPattern(patch.findHex)
@@ -27,7 +27,12 @@ class HexPatch {
         }
         
         for (range, replacement) in replacementRanges.sorted(by: { $0.0.lowerBound > $1.0.lowerBound }) {
-            fileBytes.replaceSubrange(range, with: replacement)
+            for (offset, repByte) in replacement.enumerated() {
+                let fileIndex = range.lowerBound + offset
+                if let byte = repByte {
+                    fileBytes[fileIndex] = byte
+                }
+            }
         }
         
         try Data(fileBytes).write(to: URL(fileURLWithPath: filePath))
@@ -79,11 +84,13 @@ class HexPatch {
         return pattern
     }
     
-    private func parseReplacementHex(_ hex: String, pattern: [UInt8?]) throws -> [UInt8] {
+    private func parseReplacementHex(_ hex: String, pattern: [UInt8?]) throws -> [UInt8?] {
         let cleanHex = preprocessHexString(hex)
-        var replacement: [UInt8] = []
+        var replacement: [UInt8?] = []
         
         var index = cleanHex.startIndex
+        var patternIndex = 0
+        
         while index < cleanHex.endIndex {
             guard let nextIndex = cleanHex.index(index, offsetBy: 2, limitedBy: cleanHex.endIndex) else {
                 break
@@ -95,16 +102,23 @@ class HexPatch {
             index = nextIndex
             
             if byteString == "??" {
-                throw HexPatchError.invalidHexString(description: "Replace hex cannot contain wildcards (??).")
+                if patternIndex >= pattern.count {
+                    throw HexPatchError.hexStringLengthMismatch(description: "Replace hex has more bytes than find hex.")
+                }
+                if pattern[patternIndex] != nil {
+                    throw HexPatchError.invalidHexString(description: "Replace hex contains wildcard '??' at position \(patternIndex + 1), but find hex does not.")
+                }
+                replacement.append(nil)
+            } else {
+                guard let byte = UInt8(byteString, radix: 16) else {
+                    throw HexPatchError.invalidHexString(description: "Invalid hex byte in replacement: \(byteString)")
+                }
+                replacement.append(byte)
             }
-            
-            guard let byte = UInt8(byteString, radix: 16) else {
-                throw HexPatchError.invalidHexString(description: "Invalid hex byte in replacement: \(byteString)")
-            }
-            replacement.append(byte)
+            patternIndex += 1
         }
         
-        if replacement.count != pattern.count {
+        if patternIndex != pattern.count {
             throw HexPatchError.hexStringLengthMismatch(description: "Replace hex must have the same number of bytes as find hex.")
         }
         
@@ -134,7 +148,7 @@ class HexPatch {
 
         let firstFixed = fixedByteIndices.first!
         let firstByteValue = pattern[firstFixed]!
-
+        
         for index in 0...(dataCount - patternLength) {
             if data[index + firstFixed] != firstByteValue {
                 continue

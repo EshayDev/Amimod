@@ -132,14 +132,14 @@ struct ContentView: View {
                 .foregroundColor(.gray)
 
             HStack {
-                Button("Select App") {
+                Button("Select File") {
                     let dialog = NSOpenPanel()
-                    dialog.title = "Choose a .app bundle"
+                    dialog.title = "Choose a file"
                     dialog.showsResizeIndicator = true
                     dialog.showsHiddenFiles = false
                     dialog.canChooseFiles = true
                     dialog.canChooseDirectories = false
-                    dialog.allowedFileTypes = ["app"]
+                    dialog.allowedFileTypes = ["app", "vst", "vst3", "component", "audiounit", "framework", "plugin", "kext", "bundle", "appex"]
 
                     if dialog.runModal() == .OK {
                         if let result = dialog.url {
@@ -341,7 +341,7 @@ struct ContentView: View {
                     throw HexPatch.HexPatchError.invalidHexString(description: "Invalid characters in find hex string at line \(index + 1).")
                 }
 
-                let validReplaceHexCharacterSet = CharacterSet(charactersIn: "0123456789ABCDEF ")
+                let validReplaceHexCharacterSet = CharacterSet(charactersIn: "0123456789ABCDEF ?")
                 guard replaceHexLine.allSatisfy({ validReplaceHexCharacterSet.contains(UnicodeScalar(String($0))!) }) else {
                     throw HexPatch.HexPatchError.invalidHexString(description: "Invalid characters or wildcards (??) found in replace hex string at line \(index + 1).")
                 }
