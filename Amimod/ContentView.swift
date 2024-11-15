@@ -334,7 +334,7 @@ struct ContentView: View {
                         self.isPatching = false
                     }
                 )
-            case .message(let title, let message):
+            case let .message(title, message):
                 return Alert(
                     title: Text(title),
                     message: Text(message),
