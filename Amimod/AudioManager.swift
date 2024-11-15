@@ -1,32 +1,43 @@
+import AVFoundation
 import Foundation
+import SwiftUI
 
 class AudioManager: ObservableObject {
     static let audioManager = AudioManager()
     @Published var isPaused: Bool = false
 
-    let timeInterval: Double = 1.0 / 60.0
-    var stream: HSTREAM = 0
-
-    let filePath = Bundle.main.path(forResource: "music", ofType: "mp3")
+    var audioPlayer: AVAudioPlayer?
 
     init() {
         setupAudio()
     }
 
     func setupAudio() {
-        DispatchQueue.global(qos: .background).async {
-            BASS_Init(-1, 48000, 0, nil, nil)
-            self.stream = BASS_StreamCreateFile(BOOL32(truncating: false), self.filePath, 0, 0, DWORD(BASS_SAMPLE_LOOP))
-            BASS_ChannelPlay(self.stream, 0)
+        guard let path = Bundle.main.path(forResource: "music", ofType: "mp3") else {
+            print("Music file not found.")
+            return
+        }
+
+        let url = URL(fileURLWithPath: path)
+
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: url)
+            audioPlayer?.numberOfLoops = -1
+            audioPlayer?.prepareToPlay()
+            audioPlayer?.play()
+        } catch {
+            print("Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
         }
     }
 
     func togglePause() {
-        if isPaused {
-            BASS_ChannelPlay(stream, -1)
+        guard let player = audioPlayer else { return }
+        if player.isPlaying {
+            player.pause()
+            isPaused = true
         } else {
-            BASS_ChannelPause(stream)
+            player.play()
+            isPaused = false
         }
-        isPaused.toggle()
     }
 }

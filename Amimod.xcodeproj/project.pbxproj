@@ -11,9 +11,7 @@
 		83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32D2B42D2740094C668 /* AmimodApp.swift */; };
 		83DCD3302B42D2740094C668 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32F2B42D2740094C668 /* ContentView.swift */; };
 		83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD3312B42D2750094C668 /* Assets.xcassets */; };
-		83DCD3452B42D3F80094C668 /* libbass.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 83DCD3442B42D3F80094C668 /* libbass.dylib */; };
 		83DCD3472B42D4820094C668 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD3462B42D4820094C668 /* AudioManager.swift */; };
-		83DCD34A2B42D6810094C668 /* libbass.dylib in Embed Libraries */ = {isa = PBXBuildFile; fileRef = 83DCD3442B42D3F80094C668 /* libbass.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		83DCD34C2B42D7DD0094C668 /* HexPatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD34B2B42D7DD0094C668 /* HexPatch.swift */; };
 /* End PBXBuildFile section */
 
@@ -24,7 +22,6 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				83DCD34A2B42D6810094C668 /* libbass.dylib in Embed Libraries */,
 			);
 			name = "Embed Libraries";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -38,9 +35,6 @@
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		83DCD3312B42D2750094C668 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		83DCD3362B42D2750094C668 /* Amimod.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Amimod.entitlements; sourceTree = "<group>"; };
-		83DCD3422B42D3F80094C668 /* bridging-header.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "bridging-header.h"; sourceTree = "<group>"; };
-		83DCD3432B42D3F80094C668 /* bass.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = bass.h; sourceTree = "<group>"; };
-		83DCD3442B42D3F80094C668 /* libbass.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; path = libbass.dylib; sourceTree = "<group>"; };
 		83DCD3462B42D4820094C668 /* AudioManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		83DCD34B2B42D7DD0094C668 /* HexPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HexPatch.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -50,7 +44,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				83DCD3452B42D3F80094C668 /* libbass.dylib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -61,9 +54,6 @@
 			isa = PBXGroup;
 			children = (
 				83C25C792CE3107500476B5E /* music.mp3 */,
-				83DCD3432B42D3F80094C668 /* bass.h */,
-				83DCD3422B42D3F80094C668 /* bridging-header.h */,
-				83DCD3442B42D3F80094C668 /* libbass.dylib */,
 				83DCD32C2B42D2740094C668 /* Amimod */,
 				83DCD32B2B42D2740094C668 /* Products */,
 			);
@@ -323,7 +313,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "bridging-header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -360,7 +350,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "bridging-header.h";
+				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
