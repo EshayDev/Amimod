@@ -14,20 +14,15 @@ class AudioManager: ObservableObject {
 
     func setupAudio() {
         guard let path = Bundle.main.path(forResource: "music", ofType: "mp3") else {
-            print("Music file not found.")
             return
         }
 
         let url = URL(fileURLWithPath: path)
 
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: url)
-            audioPlayer?.numberOfLoops = -1
-            audioPlayer?.prepareToPlay()
-            audioPlayer?.play()
-        } catch {
-            print("Failed to initialize AVAudioPlayer: \(error.localizedDescription)")
-        }
+        audioPlayer = try? AVAudioPlayer(contentsOf: url)
+        audioPlayer?.numberOfLoops = -1
+        audioPlayer?.prepareToPlay()
+        audioPlayer?.play()
     }
 
     func togglePause() {

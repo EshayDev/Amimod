@@ -134,7 +134,6 @@ struct ContentView: View {
     private func validateAndPatch() {
         do {
             let (selectedExecutable, patches) = try validateInputs()
-            let hexPatcher = HexPatch(chunkSize: 100 * 1024 * 1024)
 
             if usingImportedPatches {
                 applyPatch()
@@ -161,9 +160,9 @@ struct ContentView: View {
                 .foregroundColor(.gray)
 
             HStack {
-                Button("Select File") {
+                Button("Select Bundle") {
                     let dialog = NSOpenPanel()
-                    dialog.title = "Choose a file"
+                    dialog.title = "Choose a bundle"
                     dialog.showsResizeIndicator = true
                     dialog.showsHiddenFiles = false
                     dialog.canChooseFiles = true

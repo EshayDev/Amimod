@@ -27,7 +27,7 @@ class HexPatch {
 
         let fileURL = URL(fileURLWithPath: filePath)
         guard let fileHandle = try? FileHandle(forUpdating: fileURL) else {
-            throw HexPatchError.invalidFilePath(description: "Unable to open file for updating.")
+            throw HexPatchError.invalidFilePath(description: "Unable to open file for patching.")
         }
         defer { fileHandle.closeFile() }
 
