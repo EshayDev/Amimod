@@ -60,90 +60,62 @@ struct ContentView: View {
         return (selected, patches)
     }
 
-    private func applyPatch() {
-        let hexPatcher = HexPatch(chunkSize: 100 * 1024 * 1024)
-        guard let selected = selectedExecutable else {
-            activeAlert = .message(title: "Error", message: "No executable selected.")
-            return
-        }
+    private func validateAndPatch() {
+        do {
+            let (selectedExecutable, patches) = try validateInputs()
+            let hexPatcher = HexPatch()
 
-        let patches: [HexPatchOperation] = usingImportedPatches ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
+            if usingImportedPatches {
+                applyPatch()
+            } else {
+                let totalMatches = try hexPatcher.countTotalMatches(in: selectedExecutable.fullPath, patches: patches)
 
-        DispatchQueue.global(qos: .userInitiated).async {
-            do {
-                try hexPatcher.findAndReplaceHexStringsInPlace(in: selected.fullPath, patches: patches)
-                print("Patch applied successfully.")
-
-                DispatchQueue.main.async {
-                    self.activeAlert = .message(title: "Success", message: "The binary was patched successfully.")
-                    self.isPatching = false
-                }
-            } catch let hexPatchError as HexPatch.HexPatchError {
-                DispatchQueue.main.async {
-                    self.activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
-                    self.isPatching = false
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
-                    self.isPatching = false
+                if totalMatches > 1 {
+                    confirmationMessage = "\(totalMatches) matches have been found. Are you sure you want to continue with this patch?"
+                    activeAlert = .confirmation
+                } else if totalMatches == 1 {
+                    applyPatch()
+                } else {
+                    throw HexPatch.HexPatchError.hexNotFound(description: "No matches found for the provided hex pattern.")
                 }
             }
+        } catch let hexPatchError as HexPatch.HexPatchError {
+            activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
+        } catch {
+            activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
         }
     }
 
-    private func countAndConfirm() {
-        let hexPatcher = HexPatch(chunkSize: 100 * 1024 * 1024)
+    private func applyPatch() {
+        let hexPatcher = HexPatch()
         guard let selected = selectedExecutable else {
             activeAlert = .message(title: "Error", message: "No executable selected.")
             return
         }
-
         let patches: [HexPatchOperation] = usingImportedPatches ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
 
         isPatching = true
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                let totalMatches = try hexPatcher.countTotalMatchesInPlace(in: selected.fullPath, patches: patches)
+                try hexPatcher.findAndReplaceHexStrings(in: selected.fullPath, patches: patches)
+                print("Patch applied successfully.")
 
-                if totalMatches > 1 {
-                    DispatchQueue.main.async {
-                        self.confirmationMessage = "\(totalMatches) matches have been found. Are you sure you want to continue with this patch?"
-                        self.activeAlert = .confirmation
-                    }
-                } else if totalMatches == 1 {
-                    self.applyPatch()
-                } else {
-                    throw HexPatch.HexPatchError.hexNotFound(description: "No matches found for the provided hex pattern.")
+                DispatchQueue.main.async {
+                    activeAlert = .message(title: "Success", message: "The binary was patched successfully.")
+                    isPatching = false
                 }
             } catch let hexPatchError as HexPatch.HexPatchError {
                 DispatchQueue.main.async {
-                    self.activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
-                    self.isPatching = false
+                    activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
+                    isPatching = false
                 }
             } catch {
                 DispatchQueue.main.async {
-                    self.activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
-                    self.isPatching = false
+                    activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
+                    isPatching = false
                 }
             }
-        }
-    }
-
-    private func validateAndPatch() {
-        do {
-            let (selectedExecutable, patches) = try validateInputs()
-
-            if usingImportedPatches {
-                applyPatch()
-            } else {
-                countAndConfirm()
-            }
-        } catch let hexPatchError as HexPatch.HexPatchError {
-            activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
-        } catch {
-            activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
         }
     }
 
@@ -327,11 +299,9 @@ struct ContentView: View {
                     title: Text("Confirm Patch"),
                     message: Text(confirmationMessage),
                     primaryButton: .destructive(Text("Continue")) {
-                        self.applyPatch()
+                        applyPatch()
                     },
-                    secondaryButton: .cancel {
-                        self.isPatching = false
-                    }
+                    secondaryButton: .cancel()
                 )
             case let .message(title, message):
                 return Alert(

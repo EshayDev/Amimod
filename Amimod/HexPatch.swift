@@ -7,158 +7,136 @@ struct HexPatchOperation: Identifiable {
 }
 
 class HexPatch {
-    let chunkSize: Int
-    var overlap: Int
+    private let chunkSize = 100 * 1024 * 1024
 
-    init(chunkSize: Int = 100 * 1024 * 1024) {
-        self.chunkSize = chunkSize
-        overlap = 0
-    }
-
-    func findAndReplaceHexStringsInPlace(
-        in filePath: String,
-        patches: [HexPatchOperation]
-    ) throws {
-        guard !patches.isEmpty else { return }
-
-        let maxPatternLength = patches.compactMap { try? parseHexPattern($0.findHex).count }.max() ?? 4
-        let overlap = maxPatternLength - 1
-        self.overlap = overlap
-
+    func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
         let fileURL = URL(fileURLWithPath: filePath)
-        guard let fileHandle = try? FileHandle(forUpdating: fileURL) else {
-            throw HexPatchError.invalidFilePath(description: "Unable to open file for patching.")
-        }
-        defer { fileHandle.closeFile() }
+        let fileSize = try FileManager.default.attributesOfItem(atPath: filePath)[.size] as! UInt64
+        let fileHandle = try FileHandle(forUpdating: fileURL)
+        defer { try? fileHandle.close() }
 
-        let fileSize = try FileManager.default.attributesOfItem(atPath: filePath)[.size] as? UInt64 ?? 0
-        var fileOffset: UInt64 = 0
-        var previousBufferSuffix = Data()
+        let maxPatternLength = try patches.compactMap { try parseHexPattern($0.findHex).count }.max() ?? 0
 
-        let parsedPatches = try patches.map { try ParsedPatch(patch: $0) }
+        var allReplacements: [(offset: UInt64, replacement: [UInt8?])] = []
+        var processedBytes: UInt64 = 0
 
-        while fileOffset < fileSize {
-            let readSize = min(UInt64(chunkSize), fileSize - fileOffset)
-            fileHandle.seek(toFileOffset: fileOffset)
-            let currentData = fileHandle.readData(ofLength: Int(readSize))
+        while processedBytes < fileSize {
+            let remainingBytes = fileSize - processedBytes
+            let currentChunkSize = UInt64(min(chunkSize, Int(remainingBytes)))
 
-            var buffer = previousBufferSuffix + currentData
+            try fileHandle.seek(toOffset: processedBytes)
 
-            let isLastChunk = (fileOffset + UInt64(chunkSize)) >= fileSize
-            if !isLastChunk {
-                let retainRange = buffer.count - overlap ..< buffer.count
-                previousBufferSuffix = buffer.subdata(in: retainRange)
-                buffer = buffer.subdata(in: 0 ..< (buffer.count - overlap))
-            } else {
-                previousBufferSuffix = Data()
+            let overlapSize = UInt64(maxPatternLength - 1)
+            let readSize = min(currentChunkSize + overlapSize, fileSize - processedBytes)
+            guard let chunkData = try fileHandle.read(upToCount: Int(readSize)) else {
+                throw HexPatchError.invalidInput(description: "Failed to read chunk from file")
             }
 
-            let byteArray = [UInt8](buffer)
-            var modifiedBytes = byteArray
+            var chunkBytes = [UInt8](chunkData)
 
-            for parsedPatch in parsedPatches {
-                let matches = findPatternMatches(in: byteArray, pattern: parsedPatch.pattern)
+            for patch in patches {
+                let pattern = try parseHexPattern(patch.findHex)
+                let replacement = try parseReplacementHex(patch.replaceHex, pattern: pattern)
+
+                let searchEndIndex = Int(currentChunkSize)
+                let matches = findPatternMatches(in: chunkBytes, pattern: pattern, endIndex: searchEndIndex)
+
+                if matches.isEmpty, processedBytes == 0 {
+                    throw HexPatchError.hexNotFound(description: "Pattern not found: \(patch.findHex)")
+                }
+
                 for matchRange in matches {
-                    for (offset, repByte) in parsedPatch.replacement.enumerated() {
-                        let index = matchRange.lowerBound + offset
-                        if let byte = repByte, index < modifiedBytes.count {
-                            modifiedBytes[index] = byte
-                        }
-                    }
+                    let fileOffset = processedBytes + UInt64(matchRange.lowerBound)
+                    allReplacements.append((offset: fileOffset, replacement: replacement))
                 }
             }
 
-            if modifiedBytes != byteArray {
-                fileHandle.seek(toFileOffset: fileOffset)
-                try fileHandle.write(contentsOf: Data(modifiedBytes))
+            processedBytes += currentChunkSize
+        }
+
+        allReplacements.sort { $0.offset > $1.offset }
+
+        for (offset, replacement) in allReplacements {
+            try fileHandle.seek(toOffset: offset)
+
+            var bytesToWrite: [UInt8] = []
+            for (index, repByte) in replacement.enumerated() {
+                if let byte = repByte {
+                    bytesToWrite.append(byte)
+                } else {
+                    try fileHandle.seek(toOffset: offset + UInt64(index))
+                    guard let originalByte = try fileHandle.read(upToCount: 1)?.first else {
+                        throw HexPatchError.invalidInput(description: "Failed to read original byte for wildcard")
+                    }
+                    bytesToWrite.append(originalByte)
+                }
             }
 
-            fileOffset += UInt64(chunkSize)
+            try fileHandle.seek(toOffset: offset)
+            try fileHandle.write(contentsOf: bytesToWrite)
         }
+
+        try fileHandle.synchronize()
     }
 
-    func countTotalMatchesInPlace(
-        in filePath: String,
-        patches: [HexPatchOperation]
-    ) throws -> Int {
-        guard !patches.isEmpty else { return 0 }
-
-        let maxPatternLength = patches.compactMap { try? parseHexPattern($0.findHex).count }.max() ?? 4
-        let overlap = maxPatternLength - 1
-
+    func countTotalMatches(in filePath: String, patches: [HexPatchOperation]) throws -> Int {
         let fileURL = URL(fileURLWithPath: filePath)
-        guard let fileHandle = try? FileHandle(forReadingFrom: fileURL) else {
-            throw HexPatchError.invalidFilePath(description: "Unable to open file for reading.")
-        }
-        defer { fileHandle.closeFile() }
+        let fileSize = try FileManager.default.attributesOfItem(atPath: filePath)[.size] as! UInt64
+        let fileHandle = try FileHandle(forReadingFrom: fileURL)
+        defer { try? fileHandle.close() }
 
-        let fileSize = try FileManager.default.attributesOfItem(atPath: filePath)[.size] as? UInt64 ?? 0
-        var fileOffset: UInt64 = 0
-        var previousBufferSuffix = Data()
+        let maxPatternLength = try patches.compactMap { try parseHexPattern($0.findHex).count }.max() ?? 0
         var totalMatches = 0
+        var processedBytes: UInt64 = 0
 
-        let parsedPatches = try patches.map { try ParsedPatch(patch: $0) }
+        while processedBytes < fileSize {
+            let remainingBytes = fileSize - processedBytes
+            let currentChunkSize = UInt64(min(chunkSize, Int(remainingBytes)))
 
-        while fileOffset < fileSize {
-            let readSize = min(UInt64(chunkSize), fileSize - fileOffset)
-            fileHandle.seek(toFileOffset: fileOffset)
-            let currentData = fileHandle.readData(ofLength: Int(readSize))
+            try fileHandle.seek(toOffset: processedBytes)
 
-            var buffer = previousBufferSuffix + currentData
-
-            let isLastChunk = (fileOffset + UInt64(chunkSize)) >= fileSize
-            if !isLastChunk {
-                let retainRange = buffer.count - overlap ..< buffer.count
-                previousBufferSuffix = buffer.subdata(in: retainRange)
-                buffer = buffer.subdata(in: 0 ..< (buffer.count - overlap))
-            } else {
-                previousBufferSuffix = Data()
+            let overlapSize = UInt64(maxPatternLength - 1)
+            let readSize = min(currentChunkSize + overlapSize, fileSize - processedBytes)
+            guard let chunkData = try fileHandle.read(upToCount: Int(readSize)) else {
+                throw HexPatchError.invalidInput(description: "Failed to read chunk from file")
             }
 
-            let byteArray = [UInt8](buffer)
+            let chunkBytes = [UInt8](chunkData)
 
-            for parsedPatch in parsedPatches {
-                let matches = findPatternMatches(in: byteArray, pattern: parsedPatch.pattern)
+            for patch in patches {
+                let pattern = try parseHexPattern(patch.findHex)
+                let searchEndIndex = Int(currentChunkSize)
+                let matches = findPatternMatches(in: chunkBytes, pattern: pattern, endIndex: searchEndIndex)
                 totalMatches += matches.count
             }
 
-            fileOffset += UInt64(chunkSize)
+            processedBytes += currentChunkSize
         }
 
         return totalMatches
     }
 
-    private struct ParsedPatch {
-        let pattern: [UInt8?]
-        let replacement: [UInt8?]
-
-        init(patch: HexPatchOperation) throws {
-            pattern = try HexPatch().parseHexPattern(patch.findHex)
-            replacement = try HexPatch().parseReplacementHex(patch.replaceHex, pattern: pattern)
-        }
-    }
-
-    private func findPatternMatches(in data: [UInt8], pattern: [UInt8?]) -> [Range<Int>] {
+    private func findPatternMatches(in data: [UInt8], pattern: [UInt8?], endIndex: Int? = nil) -> [Range<Int>] {
         var matches: [Range<Int>] = []
         let patternLength = pattern.count
-        let dataCount = data.count
+        let searchEndIndex = endIndex ?? data.count
 
-        guard patternLength > 0, dataCount >= patternLength else {
+        guard patternLength > 0, searchEndIndex >= patternLength else {
             return matches
         }
 
         let fixedByteIndices = pattern.indices.filter { pattern[$0] != nil }
         if fixedByteIndices.isEmpty {
-            for index in 0 ... (dataCount - patternLength) {
+            for index in 0 ... (searchEndIndex - patternLength) {
                 matches.append(index ..< (index + patternLength))
             }
             return matches
         }
 
         let firstFixed = fixedByteIndices.first!
-        guard let firstByteValue = pattern[firstFixed] else { return matches }
+        let firstByteValue = pattern[firstFixed]!
 
-        for index in 0 ... (dataCount - patternLength) {
+        for index in 0 ... (searchEndIndex - patternLength) {
             if data[index + firstFixed] != firstByteValue {
                 continue
             }
