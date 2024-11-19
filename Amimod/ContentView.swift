@@ -95,14 +95,32 @@ struct ContentView: View {
         let patches: [HexPatchOperation] = usingImportedPatches ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
 
         isPatching = true
+        let startTime = DispatchTime.now()
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 try hexPatcher.findAndReplaceHexStrings(in: selected.fullPath, patches: patches)
-                print("Patch applied successfully.")
+                let endTime = DispatchTime.now()
+                let durationNanoseconds = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
+                let durationSeconds = Double(durationNanoseconds) / 1_000_000_000
+
+                let formattedDuration: String
+                if durationSeconds >= 1.0 {
+                    formattedDuration = String(format: "(Operation completed in %.1f seconds)", durationSeconds)
+                } else if durationSeconds >= 0.001 {
+                    let milliseconds = Double(durationNanoseconds) / 1_000_000
+                    formattedDuration = String(format: "(Operation completed in %.0f ms)", milliseconds)
+                } else if durationSeconds >= 0.000001 {
+                    let microseconds = Double(durationNanoseconds) / 1000
+                    formattedDuration = String(format: "(Operation completed in %.0f µs)", microseconds)
+                } else {
+                    let nanoseconds = durationNanoseconds
+                    formattedDuration = "(\(nanoseconds) ns)"
+                }
+                print("Patch applied successfully \(formattedDuration).")
 
                 DispatchQueue.main.async {
-                    activeAlert = .message(title: "Success", message: "The binary was patched successfully.")
+                    activeAlert = .message(title: "Success", message: "The binary was patched successfully.\n\(formattedDuration)")
                     isPatching = false
                 }
             } catch let hexPatchError as HexPatch.HexPatchError {

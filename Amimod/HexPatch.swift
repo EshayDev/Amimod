@@ -197,6 +197,12 @@ class HexPatch {
 
         for patch in patches {
             let pattern = try parseHexString(patch.findHex, mode: .find)
+            let replacement = try parseHexString(patch.replaceHex, mode: .replace, pattern: pattern)
+
+            guard pattern.count == replacement.count else {
+                throw HexPatchError.hexStringLengthMismatch(description: "Find and replace hex strings must have the same amount of bytes.")
+            }
+
             let skipTable = buildSkipTable(from: pattern)
             let matches = try processFileInParallel(
                 url: URL(fileURLWithPath: filePath),
