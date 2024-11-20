@@ -7,7 +7,8 @@ struct HexPatchOperation: Identifiable {
 }
 
 class HexPatch {
-    private let BUFFER_SIZE = 1024 * 1024
+    private let BUFFER_SIZE = 4 * 1024 * 1024
+    private let MAX_CHUNK_MATCHES = 1000
 
     private enum ParseMode {
         case find, replace
@@ -70,8 +71,8 @@ class HexPatch {
         let chunkSize = UInt64(BUFFER_SIZE)
         let chunks = Int((fileSize + chunkSize - 1) / chunkSize)
 
-        let matchQueue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
         let group = DispatchGroup()
+        let matchQueue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
 
         let processorCount = ProcessInfo.processInfo.activeProcessorCount
         let semaphore = DispatchSemaphore(value: processorCount)
@@ -83,7 +84,7 @@ class HexPatch {
             semaphore.wait()
             group.enter()
 
-            DispatchQueue.global().async {
+            matchQueue.async {
                 autoreleasepool {
                     let offset = UInt64(chunk) * chunkSize
                     if let chunkMatches = try? self.searchChunk(
@@ -94,7 +95,7 @@ class HexPatch {
                         skipTable: skipTable
                     ) {
                         matchLock.lock()
-                        matches.append(contentsOf: chunkMatches.prefix(1000))
+                        matches.append(contentsOf: chunkMatches)
                         matchLock.unlock()
                     }
                     semaphore.signal()
@@ -107,7 +108,7 @@ class HexPatch {
         return Array(matches)
     }
 
-    private func searchChunk(url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?], skipTable _: SkipTable, maxMatches: Int = 1000) throws -> [UInt64] {
+    private func searchChunk(url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?], skipTable _: SkipTable) throws -> [UInt64] {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
 
@@ -116,30 +117,76 @@ class HexPatch {
 
         var matches = ContiguousArray<UInt64>()
         let patternLength = pattern.count
-        var index = 0
 
-        while index <= data.count - patternLength, matches.count < maxMatches {
-            if let firstByte = pattern[0],
-               data[index] != firstByte
-            {
+        if !pattern.contains(where: { $0 == nil }) {
+            let patternBytes = pattern.compactMap { $0 }
+            return try searchChunkFast(data: data, pattern: patternBytes, offset: offset)
+        }
+
+        return data.withUnsafeBytes { buffer -> [UInt64] in
+            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            var index = 0
+
+            while index <= data.count - patternLength {
+                if matches.count >= MAX_CHUNK_MATCHES { break }
+
+                var isMatch = true
+                for patternIndex in 0 ..< patternLength {
+                    if let expectedByte = pattern[patternIndex],
+                       ptr[index + patternIndex] != expectedByte
+                    {
+                        isMatch = false
+                        break
+                    }
+                }
+
+                if isMatch {
+                    matches.append(offset + UInt64(index))
+                }
                 index += 1
-                continue
             }
 
-            var isMatch = true
-            for patternIndex in 0 ..< patternLength {
-                if let expectedByte = pattern[patternIndex],
-                   data[index + patternIndex] != expectedByte
-                {
-                    isMatch = false
-                    break
+            return Array(matches)
+        }
+    }
+
+    private func searchChunkFast(data: Data, pattern: [UInt8], offset: UInt64) throws -> [UInt64] {
+        var matches = ContiguousArray<UInt64>()
+        let patternLength = pattern.count
+
+        data.withUnsafeBytes { buffer in
+            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            let length = buffer.count
+            var index = 0
+
+            if patternLength <= 16 {
+                while index <= length - patternLength {
+                    if matches.count >= MAX_CHUNK_MATCHES { break }
+
+                    if memcmp(ptr + index, pattern, patternLength) == 0 {
+                        matches.append(offset + UInt64(index))
+                    }
+                    index += 1
+                }
+            } else {
+                while index <= length - patternLength {
+                    if matches.count >= MAX_CHUNK_MATCHES { break }
+
+                    if ptr[index] == pattern[0] {
+                        var fullMatch = true
+                        for j in 1 ..< patternLength {
+                            if ptr[index + j] != pattern[j] {
+                                fullMatch = false
+                                break
+                            }
+                        }
+                        if fullMatch {
+                            matches.append(offset + UInt64(index))
+                        }
+                    }
+                    index += 1
                 }
             }
-
-            if isMatch {
-                matches.append(offset + UInt64(index))
-            }
-            index += 1
         }
 
         return Array(matches)
