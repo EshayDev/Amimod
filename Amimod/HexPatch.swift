@@ -7,8 +7,7 @@ struct HexPatchOperation: Identifiable {
 }
 
 class HexPatch {
-    private let BUFFER_SIZE = 256 * 1024
-    private let ASIZE = 256
+    private let BUFFER_SIZE = 1024 * 1024
 
     private enum ParseMode {
         case find, replace
@@ -74,7 +73,9 @@ class HexPatch {
         let matchQueue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
         let group = DispatchGroup()
 
-        let semaphore = DispatchSemaphore(value: 4)
+        let processorCount = ProcessInfo.processInfo.activeProcessorCount
+        let semaphore = DispatchSemaphore(value: processorCount)
+
         var matches = ContiguousArray<UInt64>()
         let matchLock = NSLock()
 
