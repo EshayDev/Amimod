@@ -7,16 +7,12 @@ struct HexPatchOperation: Identifiable {
 }
 
 class HexPatch {
-    private let BUFFER_SIZE = 4 * 1024 * 1024
-    private let MAX_CHUNK_MATCHES = 1000
+    private let bufferSize = 4 * 1024 * 1024
+    private let maxMatchesPerChunk = 1000
 
-    private enum ParseMode {
-        case find, replace
-    }
-
-    private typealias SkipTable = [UInt8: Set<Int>]
-
-    private func parseHexString(_ hex: String, mode: ParseMode, pattern: [UInt8?]? = nil) throws -> [UInt8?] {
+    private func parseHexPattern(
+        _ hex: String, isReplacement: Bool = false, originalPattern: [UInt8?]? = nil
+    ) throws -> [UInt8?] {
         let cleanHex = hex.replacingOccurrences(of: " ", with: "").uppercased()
 
         guard !cleanHex.isEmpty else { throw HexPatchError.emptyHexStrings }
@@ -29,21 +25,23 @@ class HexPatch {
 
         while index < cleanHex.endIndex {
             let nextIndex = cleanHex.index(index, offsetBy: 2)
-            let byteString = String(cleanHex[index ..< nextIndex])
+            let byteString = String(cleanHex[index..<nextIndex])
 
             if byteString == "??" {
-                if mode == .replace {
-                    guard let pat = pattern,
-                          result.count < pat.count,
-                          pat[result.count] == nil
+                if isReplacement {
+                    guard let pattern = originalPattern,
+                        result.count < pattern.count,
+                        pattern[result.count] == nil
                     else {
-                        throw HexPatchError.invalidHexString(description: "Invalid wildcard usage in replace pattern")
+                        throw HexPatchError.invalidHexString(
+                            description: "Invalid wildcard usage in replace pattern")
                     }
                 }
                 result.append(nil)
             } else {
                 guard let byte = UInt8(byteString, radix: 16) else {
-                    throw HexPatchError.invalidHexString(description: "Invalid hex byte: \(byteString)")
+                    throw HexPatchError.invalidHexString(
+                        description: "Invalid hex byte: \(byteString)")
                 }
                 result.append(byte)
             }
@@ -54,61 +52,9 @@ class HexPatch {
         return result
     }
 
-    private func buildSkipTable(from pattern: [UInt8?]) -> SkipTable {
-        var table: SkipTable = [:]
-
-        for (index, byte) in pattern.enumerated() {
-            if let byte = byte {
-                table[byte, default: []].insert(index)
-            }
-        }
-
-        return table
-    }
-
-    private func processFileInParallel(url: URL, pattern: [UInt8?], skipTable: SkipTable) throws -> [UInt64] {
-        let fileSize = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
-        let chunkSize = UInt64(BUFFER_SIZE)
-        let chunks = Int((fileSize + chunkSize - 1) / chunkSize)
-
-        let group = DispatchGroup()
-        let matchQueue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
-
-        let processorCount = ProcessInfo.processInfo.activeProcessorCount
-        let semaphore = DispatchSemaphore(value: processorCount)
-
-        var matches = ContiguousArray<UInt64>()
-        let matchLock = NSLock()
-
-        for chunk in 0 ..< chunks {
-            semaphore.wait()
-            group.enter()
-
-            matchQueue.async {
-                autoreleasepool {
-                    let offset = UInt64(chunk) * chunkSize
-                    if let chunkMatches = try? self.searchChunk(
-                        url: url,
-                        offset: offset,
-                        length: min(chunkSize, fileSize - offset),
-                        pattern: pattern,
-                        skipTable: skipTable
-                    ) {
-                        matchLock.lock()
-                        matches.append(contentsOf: chunkMatches)
-                        matchLock.unlock()
-                    }
-                    semaphore.signal()
-                    group.leave()
-                }
-            }
-        }
-
-        group.wait()
-        return Array(matches)
-    }
-
-    private func searchChunk(url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?], skipTable _: SkipTable) throws -> [UInt64] {
+    private func searchChunk(url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?]) throws
+        -> [UInt64]
+    {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
 
@@ -120,7 +66,7 @@ class HexPatch {
 
         if !pattern.contains(where: { $0 == nil }) {
             let patternBytes = pattern.compactMap { $0 }
-            return try searchChunkFast(data: data, pattern: patternBytes, offset: offset)
+            return try searchExactPattern(in: data, pattern: patternBytes, offset: offset)
         }
 
         return data.withUnsafeBytes { buffer -> [UInt64] in
@@ -128,12 +74,12 @@ class HexPatch {
             var index = 0
 
             while index <= data.count - patternLength {
-                if matches.count >= MAX_CHUNK_MATCHES { break }
+                if matches.count >= maxMatchesPerChunk { break }
 
                 var isMatch = true
-                for patternIndex in 0 ..< patternLength {
+                for patternIndex in 0..<patternLength {
                     if let expectedByte = pattern[patternIndex],
-                       ptr[index + patternIndex] != expectedByte
+                        ptr[index + patternIndex] != expectedByte
                     {
                         isMatch = false
                         break
@@ -150,7 +96,9 @@ class HexPatch {
         }
     }
 
-    private func searchChunkFast(data: Data, pattern: [UInt8], offset: UInt64) throws -> [UInt64] {
+    private func searchExactPattern(in data: Data, pattern: [UInt8], offset: UInt64) throws
+        -> [UInt64]
+    {
         var matches = ContiguousArray<UInt64>()
         let patternLength = pattern.count
 
@@ -161,8 +109,7 @@ class HexPatch {
 
             if patternLength <= 16 {
                 while index <= length - patternLength {
-                    if matches.count >= MAX_CHUNK_MATCHES { break }
-
+                    if matches.count >= maxMatchesPerChunk { break }
                     if memcmp(ptr + index, pattern, patternLength) == 0 {
                         matches.append(offset + UInt64(index))
                     }
@@ -170,11 +117,10 @@ class HexPatch {
                 }
             } else {
                 while index <= length - patternLength {
-                    if matches.count >= MAX_CHUNK_MATCHES { break }
-
+                    if matches.count >= maxMatchesPerChunk { break }
                     if ptr[index] == pattern[0] {
                         var fullMatch = true
-                        for j in 1 ..< patternLength {
+                        for j in 1..<patternLength {
                             if ptr[index + j] != pattern[j] {
                                 fullMatch = false
                                 break
@@ -192,27 +138,48 @@ class HexPatch {
         return Array(matches)
     }
 
-    func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
-        for patch in patches {
-            let pattern = try parseHexString(patch.findHex, mode: .find)
-            let replacement = try parseHexString(patch.replaceHex, mode: .replace, pattern: pattern)
+    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64] {
+        let fileSize = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
+        let chunkSize = UInt64(bufferSize)
+        let chunks = Int((fileSize + chunkSize - 1) / chunkSize)
 
-            let skipTable = buildSkipTable(from: pattern)
-            let matches = try processFileInParallel(
-                url: URL(fileURLWithPath: filePath),
-                pattern: pattern,
-                skipTable: skipTable
-            )
+        let group = DispatchGroup()
+        let queue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
+        let processorCount = ProcessInfo.processInfo.activeProcessorCount
+        let semaphore = DispatchSemaphore(value: processorCount)
 
-            if matches.isEmpty {
-                throw HexPatchError.hexNotFound(description: "Pattern not found: \(patch.findHex)")
+        var matches = ContiguousArray<UInt64>()
+        let matchLock = NSLock()
+
+        for chunk in 0..<chunks {
+            semaphore.wait()
+            group.enter()
+
+            queue.async {
+                autoreleasepool {
+                    let offset = UInt64(chunk) * chunkSize
+                    if let chunkMatches = try? self.searchChunk(
+                        url: url,
+                        offset: offset,
+                        length: min(chunkSize, fileSize - offset),
+                        pattern: pattern
+                    ) {
+                        matchLock.lock()
+                        matches.append(contentsOf: chunkMatches)
+                        matchLock.unlock()
+                    }
+                    semaphore.signal()
+                    group.leave()
+                }
             }
-
-            try applyPatches(to: filePath, matches: matches, replacement: replacement)
         }
+
+        group.wait()
+        return Array(matches)
     }
 
-    private func applyPatches(to filePath: String, matches: [UInt64], replacement: [UInt8?]) throws {
+    private func applyPatches(to filePath: String, matches: [UInt64], replacement: [UInt8?]) throws
+    {
         let fileHandle = try FileHandle(forUpdating: URL(fileURLWithPath: filePath))
         defer { try? fileHandle.close() }
 
@@ -226,7 +193,8 @@ class HexPatch {
                 } else {
                     try fileHandle.seek(toOffset: offset + UInt64(index))
                     guard let originalByte = try fileHandle.read(upToCount: 1)?.first else {
-                        throw HexPatchError.invalidInput(description: "Failed to read original byte")
+                        throw HexPatchError.invalidInput(
+                            description: "Failed to read original byte")
                     }
                     bytesToWrite.append(originalByte)
                 }
@@ -239,27 +207,43 @@ class HexPatch {
         try fileHandle.synchronize()
     }
 
+    func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
+        for patch in patches {
+            let pattern = try parseHexPattern(patch.findHex)
+            let replacement = try parseHexPattern(
+                patch.replaceHex, isReplacement: true, originalPattern: pattern)
+
+            let matches = try findMatches(in: URL(fileURLWithPath: filePath), pattern: pattern)
+
+            if matches.isEmpty {
+                throw HexPatchError.hexNotFound(description: "Pattern not found: \(patch.findHex)")
+            }
+
+            try applyPatches(to: filePath, matches: matches, replacement: replacement)
+        }
+    }
+
     func countTotalMatches(in filePath: String, patches: [HexPatchOperation]) throws -> Int {
         var totalMatches = 0
         let maxMatchesPerPatch = 50000
 
         for patch in patches {
-            let pattern = try parseHexString(patch.findHex, mode: .find)
-            let replacement = try parseHexString(patch.replaceHex, mode: .replace, pattern: pattern)
+            let pattern = try parseHexPattern(patch.findHex)
+            let replacement = try parseHexPattern(
+                patch.replaceHex, isReplacement: true, originalPattern: pattern)
 
             guard pattern.count == replacement.count else {
-                throw HexPatchError.hexStringLengthMismatch(description: "Find and replace hex strings must have the same amount of bytes.")
+                throw HexPatchError.hexStringLengthMismatch(
+                    description: "Find and replace hex strings must have the same amount of bytes.")
             }
 
-            let skipTable = buildSkipTable(from: pattern)
-            let matches = try processFileInParallel(
-                url: URL(fileURLWithPath: filePath),
-                pattern: pattern,
-                skipTable: skipTable
-            )
+            let matches = try findMatches(in: URL(fileURLWithPath: filePath), pattern: pattern)
 
             if matches.count > maxMatchesPerPatch {
-                throw HexPatchError.invalidInput(description: "Too many matches found (\(matches.count)). This could cause performance issues. Please refine your search pattern.")
+                throw HexPatchError.invalidInput(
+                    description:
+                        "Too many matches found (\(matches.count)). This could cause performance issues. Please refine your search pattern."
+                )
             }
 
             totalMatches += matches.count

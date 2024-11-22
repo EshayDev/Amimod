@@ -38,7 +38,9 @@ struct ContentView: View {
         }
     }
 
-    private func validateInputs() throws -> (selectedExecutable: Executable, patches: [HexPatchOperation]) {
+    private func validateInputs() throws -> (
+        selectedExecutable: Executable, patches: [HexPatchOperation]
+    ) {
         guard !filePath.isEmpty else {
             throw HexPatch.HexPatchError.invalidInput(description: "File path cannot be empty.")
         }
@@ -48,14 +50,17 @@ struct ContentView: View {
         }
 
         guard let selected = selectedExecutable else {
-            throw HexPatch.HexPatchError.invalidInput(description: "Please select an executable from the list.")
+            throw HexPatch.HexPatchError.invalidInput(
+                description: "Please select an executable from the list.")
         }
 
         if !usingImportedPatches && (findHex.isEmpty || replaceHex.isEmpty) {
             throw HexPatch.HexPatchError.emptyHexStrings
         }
 
-        let patches: [HexPatchOperation] = usingImportedPatches ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
+        let patches: [HexPatchOperation] =
+            usingImportedPatches
+            ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
 
         return (selected, patches)
     }
@@ -68,15 +73,18 @@ struct ContentView: View {
             if usingImportedPatches {
                 applyPatch()
             } else {
-                let totalMatches = try hexPatcher.countTotalMatches(in: selectedExecutable.fullPath, patches: patches)
+                let totalMatches = try hexPatcher.countTotalMatches(
+                    in: selectedExecutable.fullPath, patches: patches)
 
                 if totalMatches > 1 {
-                    confirmationMessage = "\(totalMatches) matches have been found. Are you sure you want to continue with this patch?"
+                    confirmationMessage =
+                        "\(totalMatches) matches have been found. Are you sure you want to continue with this patch?"
                     activeAlert = .confirmation
                 } else if totalMatches == 1 {
                     applyPatch()
                 } else {
-                    throw HexPatch.HexPatchError.hexNotFound(description: "No matches found for the provided hex pattern.")
+                    throw HexPatch.HexPatchError.hexNotFound(
+                        description: "No matches found for the provided hex pattern.")
                 }
             }
         } catch let hexPatchError as HexPatch.HexPatchError {
@@ -92,7 +100,9 @@ struct ContentView: View {
             activeAlert = .message(title: "Error", message: "No executable selected.")
             return
         }
-        let patches: [HexPatchOperation] = usingImportedPatches ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
+        let patches: [HexPatchOperation] =
+            usingImportedPatches
+            ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
 
         isPatching = true
         let startTime = DispatchTime.now()
@@ -106,13 +116,16 @@ struct ContentView: View {
 
                 let formattedDuration: String
                 if durationSeconds >= 1.0 {
-                    formattedDuration = String(format: "(Operation completed in %.1f seconds)", durationSeconds)
+                    formattedDuration = String(
+                        format: "(Operation completed in %.1f seconds)", durationSeconds)
                 } else if durationSeconds >= 0.001 {
                     let milliseconds = Double(durationNanoseconds) / 1_000_000
-                    formattedDuration = String(format: "(Operation completed in %.0f ms)", milliseconds)
+                    formattedDuration = String(
+                        format: "(Operation completed in %.0f ms)", milliseconds)
                 } else if durationSeconds >= 0.000001 {
                     let microseconds = Double(durationNanoseconds) / 1000
-                    formattedDuration = String(format: "(Operation completed in %.0f µs)", microseconds)
+                    formattedDuration = String(
+                        format: "(Operation completed in %.0f µs)", microseconds)
                 } else {
                     let nanoseconds = durationNanoseconds
                     formattedDuration = "(\(nanoseconds) ns)"
@@ -120,12 +133,15 @@ struct ContentView: View {
                 print("Patch applied successfully \(formattedDuration).")
 
                 DispatchQueue.main.async {
-                    activeAlert = .message(title: "Success", message: "The binary was patched successfully.\n\(formattedDuration)")
+                    activeAlert = .message(
+                        title: "Success",
+                        message: "The binary was patched successfully.\n\(formattedDuration)")
                     isPatching = false
                 }
             } catch let hexPatchError as HexPatch.HexPatchError {
                 DispatchQueue.main.async {
-                    activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
+                    activeAlert = .message(
+                        title: "Error", message: hexPatchError.localizedDescription)
                     isPatching = false
                 }
             } catch {
@@ -157,7 +173,10 @@ struct ContentView: View {
                     dialog.showsHiddenFiles = false
                     dialog.canChooseFiles = true
                     dialog.canChooseDirectories = false
-                    dialog.allowedFileTypes = ["app", "vst", "vst3", "component", "audiounit", "framework", "plugin", "kext", "bundle", "appex"]
+                    dialog.allowedFileTypes = [
+                        "app", "vst", "vst3", "component", "audiounit", "framework", "plugin",
+                        "kext", "bundle", "appex",
+                    ]
 
                     if dialog.runModal() == .OK {
                         if let result = dialog.url {
@@ -206,10 +225,13 @@ struct ContentView: View {
             }
 
             HStack {
-                TextField(usingImportedPatches ? "ⓘ Using imported hex notes." : "Find Hex", text: $findHex)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.leading)
-                    .disabled(usingImportedPatches)
+                TextField(
+                    usingImportedPatches ? "ⓘ Using imported hex notes." : "Find Hex",
+                    text: $findHex
+                )
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.leading)
+                .disabled(usingImportedPatches)
 
                 Button(action: {
                     findHex = ""
@@ -223,10 +245,13 @@ struct ContentView: View {
             }
 
             HStack {
-                TextField(usingImportedPatches ? "ⓘ Using imported hex notes." : "Replace Hex", text: $replaceHex)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding(.leading)
-                    .disabled(usingImportedPatches)
+                TextField(
+                    usingImportedPatches ? "ⓘ Using imported hex notes." : "Replace Hex",
+                    text: $replaceHex
+                )
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.leading)
+                .disabled(usingImportedPatches)
 
                 Button(action: {
                     replaceHex = ""
@@ -259,10 +284,15 @@ struct ContentView: View {
                     validateAndPatch()
                 }
                 .padding(.bottom, 16)
-                .disabled(executables.isEmpty || selectedExecutable == nil || (usingImportedPatches && importedPatches.isEmpty))
+                .disabled(
+                    executables.isEmpty || selectedExecutable == nil
+                        || (usingImportedPatches && importedPatches.isEmpty))
             }
         }
-        .frame(minWidth: 500, idealWidth: 500, maxWidth: .infinity, minHeight: 400, idealHeight: 400, maxHeight: .infinity)
+        .frame(
+            minWidth: 500, idealWidth: 500, maxWidth: .infinity, minHeight: 400, idealHeight: 400,
+            maxHeight: .infinity
+        )
         .onAppear {
             refreshExecutables()
         }
@@ -275,9 +305,12 @@ struct ContentView: View {
                         try importHexNotes(from: text)
                         showImportSheet = false
                     } catch let error as HexPatch.HexPatchError {
-                        activeAlert = .message(title: "Import Error", message: error.localizedDescription)
+                        activeAlert = .message(
+                            title: "Import Error", message: error.localizedDescription)
                     } catch {
-                        activeAlert = .message(title: "Import Error", message: "An unexpected error occurred during import.")
+                        activeAlert = .message(
+                            title: "Import Error",
+                            message: "An unexpected error occurred during import.")
                     }
                 },
                 onCancel: {
@@ -292,7 +325,9 @@ struct ContentView: View {
                     Button(action: {
                         audioManager.togglePause()
                     }) {
-                        Image(systemName: audioManager.isPaused ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        Image(
+                            systemName: audioManager.isPaused
+                                ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     }
 
                     Button(action: {
@@ -303,7 +338,9 @@ struct ContentView: View {
                             showImportSheet = true
                         }
                     }) {
-                        Image(systemName: usingImportedPatches ? "xmark.circle.fill" : "square.and.arrow.down")
+                        Image(
+                            systemName: usingImportedPatches
+                                ? "xmark.circle.fill" : "square.and.arrow.down")
                     }
                     .help(usingImportedPatches ? "Clear Imported Hex Notes" : "Import Hex Notes")
                     .disabled(filePath.isEmpty)
@@ -340,28 +377,49 @@ struct ContentView: View {
 
             if trimmedLine == "TO" {
                 guard index > 0, index < lines.count - 1 else {
-                    throw HexPatch.HexPatchError.invalidInput(description: "'TO' found without surrounding hex strings at line \(index + 1).")
+                    throw HexPatch.HexPatchError.invalidInput(
+                        description:
+                            "'TO' found without surrounding hex strings at line \(index + 1).")
                 }
 
-                let findHexLine = lines[index - 1].trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-                let replaceHexLine = lines[index + 1].trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                let findHexLine = lines[index - 1].trimmingCharacters(in: .whitespacesAndNewlines)
+                    .uppercased()
+                let replaceHexLine = lines[index + 1].trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                ).uppercased()
 
                 guard !findHexLine.isEmpty else {
-                    throw HexPatch.HexPatchError.invalidInput(description: "Empty find hex string found around 'TO' at line \(index + 1).")
+                    throw HexPatch.HexPatchError.invalidInput(
+                        description: "Empty find hex string found around 'TO' at line \(index + 1)."
+                    )
                 }
 
                 guard !replaceHexLine.isEmpty else {
-                    throw HexPatch.HexPatchError.invalidInput(description: "Empty replace hex string found around 'TO' at line \(index + 1).")
+                    throw HexPatch.HexPatchError.invalidInput(
+                        description:
+                            "Empty replace hex string found around 'TO' at line \(index + 1).")
                 }
 
                 let validFindHexCharacterSet = CharacterSet(charactersIn: "0123456789ABCDEF ?")
-                guard findHexLine.allSatisfy({ validFindHexCharacterSet.contains(UnicodeScalar(String($0))!) }) else {
-                    throw HexPatch.HexPatchError.invalidHexString(description: "Invalid characters in find hex string at line \(index + 1).")
+                guard
+                    findHexLine.allSatisfy({
+                        validFindHexCharacterSet.contains(UnicodeScalar(String($0))!)
+                    })
+                else {
+                    throw HexPatch.HexPatchError.invalidHexString(
+                        description: "Invalid characters in find hex string at line \(index + 1).")
                 }
 
                 let validReplaceHexCharacterSet = CharacterSet(charactersIn: "0123456789ABCDEF ?")
-                guard replaceHexLine.allSatisfy({ validReplaceHexCharacterSet.contains(UnicodeScalar(String($0))!) }) else {
-                    throw HexPatch.HexPatchError.invalidHexString(description: "Invalid characters or wildcards (??) found in replace hex string at line \(index + 1).")
+                guard
+                    replaceHexLine.allSatisfy({
+                        validReplaceHexCharacterSet.contains(UnicodeScalar(String($0))!)
+                    })
+                else {
+                    throw HexPatch.HexPatchError.invalidHexString(
+                        description:
+                            "Invalid characters or wildcards (??) found in replace hex string at line \(index + 1)."
+                    )
                 }
 
                 let patch = HexPatchOperation(findHex: findHexLine, replaceHex: replaceHexLine)
@@ -370,7 +428,8 @@ struct ContentView: View {
         }
 
         guard !patches.isEmpty else {
-            throw HexPatch.HexPatchError.invalidInput(description: "No valid hex patches found in the imported text.")
+            throw HexPatch.HexPatchError.invalidInput(
+                description: "No valid hex patches found in the imported text.")
         }
 
         importedPatches = patches
@@ -385,16 +444,21 @@ struct ContentView: View {
         let frameworksURL = appBundleURL.appendingPathComponent("Contents/Frameworks")
 
         listExecutablesRecursively(in: macosURL, executables: &executables, rootFolder: "[MacOS]")
-        listExecutablesRecursively(in: frameworksURL, executables: &executables, rootFolder: "[Frameworks]")
+        listExecutablesRecursively(
+            in: frameworksURL, executables: &executables, rootFolder: "[Frameworks]")
 
         return executables
     }
 
-    private func listExecutablesRecursively(in directoryURL: URL, executables: inout [Executable], rootFolder: String) {
+    private func listExecutablesRecursively(
+        in directoryURL: URL, executables: inout [Executable], rootFolder: String
+    ) {
         let fileManager = FileManager.default
 
         do {
-            let contents = try fileManager.contentsOfDirectory(at: directoryURL, includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey], options: [])
+            let contents = try fileManager.contentsOfDirectory(
+                at: directoryURL, includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey],
+                options: [])
 
             for url in contents {
                 do {
@@ -402,14 +466,22 @@ struct ContentView: View {
                     if fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) {
                         if isDirectory.boolValue {
                             let lastPathComponent = url.lastPathComponent
-                            if lastPathComponent != "Resources" && lastPathComponent != "__MACOSX" && lastPathComponent != "Current" {
-                                listExecutablesRecursively(in: url, executables: &executables, rootFolder: rootFolder)
+                            if lastPathComponent != "Resources" && lastPathComponent != "__MACOSX"
+                                && lastPathComponent != "Current"
+                            {
+                                listExecutablesRecursively(
+                                    in: url, executables: &executables, rootFolder: rootFolder)
                             }
                         } else {
-                            if let typeIdentifier = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier {
-                                if typeIdentifier == "public.unix-executable" || typeIdentifier == "com.apple.mach-o-dylib" {
+                            if let typeIdentifier = try? url.resourceValues(forKeys: [
+                                .typeIdentifierKey
+                            ]).typeIdentifier {
+                                if typeIdentifier == "public.unix-executable"
+                                    || typeIdentifier == "com.apple.mach-o-dylib"
+                                {
                                     let formattedName = "\(rootFolder) \(url.lastPathComponent)"
-                                    let executable = Executable(formattedName: formattedName, fullPath: url.path)
+                                    let executable = Executable(
+                                        formattedName: formattedName, fullPath: url.path)
                                     executables.append(executable)
                                 }
                             }
