@@ -155,10 +155,10 @@ While the patch is being applied, a progress indicator will appear at the bottom
 - The tool can be forked and modified so long as original credit is given. All rights reserved.
 
 ## Credits
-- **Code:** [eD! / EshayDev](https://github.com/EshayDev/)
+- **Code:** [eD! / EshayDev](https://github.com/EshayDev/), [Antibiotics](https://github.com/Antibioticss/)
 
 - **Graphics:** [eD! / EshayDev](https://github.com/EshayDev/)
 
-- **Music:** [OMICRON](https://0micron.bandcamp.com/)
+- **Music:** [HOME](https://home96.bandcamp.com/)
 
-- **Testing:** [eD! / EshayDev](https://github.com/EshayDev/), [Sneethan](https://github.com/Sneethan/), [BruhgDev](https://github.com/BruhgDev/)
+- **Testing:** [eD! / EshayDev](https://github.com/EshayDev/), [Antibiotics](https://github.com/Antibioticss/), [Sneethan](https://github.com/Sneethan/), [BruhgDev](https://github.com/BruhgDev/)

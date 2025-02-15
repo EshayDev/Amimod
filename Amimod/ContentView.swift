@@ -161,7 +161,7 @@ struct ContentView: View {
                 .frame(width: 480, height: 125)
                 .padding(.top, 8)
 
-            Text("Developed by eD! of TEAM EDiSO")
+            Text("Developed with ♥ by TEAM EDiSO")
                 .font(.system(size: 12))
                 .foregroundColor(.gray)
 
@@ -442,10 +442,14 @@ struct ContentView: View {
 
         let macosURL = appBundleURL.appendingPathComponent("Contents/MacOS")
         let frameworksURL = appBundleURL.appendingPathComponent("Contents/Frameworks")
+        let launchServicesURL = appBundleURL.appendingPathComponent(
+            "Contents/Library/LaunchServices")
 
         listExecutablesRecursively(in: macosURL, executables: &executables, rootFolder: "[MacOS]")
         listExecutablesRecursively(
             in: frameworksURL, executables: &executables, rootFolder: "[Frameworks]")
+        listExecutablesRecursively(
+            in: launchServicesURL, executables: &executables, rootFolder: "[LaunchServices]")
 
         return executables
     }
@@ -457,8 +461,10 @@ struct ContentView: View {
 
         do {
             let contents = try fileManager.contentsOfDirectory(
-                at: directoryURL, includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey],
-                options: [])
+                at: directoryURL,
+                includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey],
+                options: []
+            )
 
             for url in contents {
                 do {
@@ -470,21 +476,18 @@ struct ContentView: View {
                                 && lastPathComponent != "Current"
                             {
                                 listExecutablesRecursively(
-                                    in: url, executables: &executables, rootFolder: rootFolder)
+                                    in: url,
+                                    executables: &executables,
+                                    rootFolder: rootFolder
+                                )
                             }
                         } else {
-                            if let typeIdentifier = try? url.resourceValues(forKeys: [
-                                .typeIdentifierKey
-                            ]).typeIdentifier {
-                                if typeIdentifier == "public.unix-executable"
-                                    || typeIdentifier == "com.apple.mach-o-dylib"
-                                {
-                                    let formattedName = "\(rootFolder) \(url.lastPathComponent)"
-                                    let executable = Executable(
-                                        formattedName: formattedName, fullPath: url.path)
-                                    executables.append(executable)
-                                }
-                            }
+                            let formattedName = "\(rootFolder) \(url.lastPathComponent)"
+                            let executable = Executable(
+                                formattedName: formattedName,
+                                fullPath: url.path
+                            )
+                            executables.append(executable)
                         }
                     }
                 }

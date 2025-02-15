@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		83C25C7A2CE3107600476B5E /* music.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 83C25C792CE3107500476B5E /* music.mp3 */; };
+		8398F5E82D60200000D65FE5 /* music.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 8398F5E72D60200000D65FE5 /* music.m4a */; };
 		83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32D2B42D2740094C668 /* AmimodApp.swift */; };
 		83DCD3302B42D2740094C668 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32F2B42D2740094C668 /* ContentView.swift */; };
 		83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD3312B42D2750094C668 /* Assets.xcassets */; };
@@ -29,7 +29,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		83C25C792CE3107500476B5E /* music.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = music.mp3; sourceTree = "<group>"; };
+		8398F5E72D60200000D65FE5 /* music.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = music.m4a; sourceTree = "<group>"; };
 		83DCD32A2B42D2740094C668 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Amimod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		83DCD32D2B42D2740094C668 /* AmimodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmimodApp.swift; sourceTree = "<group>"; };
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -53,7 +53,7 @@
 		83DCD3212B42D2740094C668 = {
 			isa = PBXGroup;
 			children = (
-				83C25C792CE3107500476B5E /* music.mp3 */,
+				8398F5E72D60200000D65FE5 /* music.m4a */,
 				83DCD32C2B42D2740094C668 /* Amimod */,
 				83DCD32B2B42D2740094C668 /* Products */,
 			);
@@ -113,6 +113,7 @@
 				TargetAttributes = {
 					83DCD3292B42D2740094C668 = {
 						CreatedOnToolsVersion = 15.1;
+						LastSwiftMigration = 1610;
 					};
 				};
 			};
@@ -140,7 +141,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */,
-				83C25C7A2CE3107600476B5E /* music.mp3 in Resources */,
+				8398F5E82D60200000D65FE5 /* music.m4a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -287,6 +288,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Amimod/Amimod.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
@@ -298,7 +300,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Amimod;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2024 TEAM EDiSO";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 TEAM EDiSO";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -309,11 +311,12 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.2.4;
+				MARKETING_VERSION = 1.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 			};
 			name = Debug;
@@ -324,6 +327,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Amimod/Amimod.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
@@ -335,7 +339,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Amimod;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2024 TEAM EDiSO";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2025 TEAM EDiSO";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -346,7 +350,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.2.4;
+				MARKETING_VERSION = 1.2.5;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

@@ -13,7 +13,7 @@ class AudioManager: ObservableObject {
     }
 
     func setupAudio() {
-        guard let path = Bundle.main.path(forResource: "music", ofType: "mp3") else {
+        guard let path = Bundle.main.path(forResource: "music", ofType: "m4a") else {
             return
         }
 

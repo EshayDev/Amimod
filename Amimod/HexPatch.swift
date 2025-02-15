@@ -61,12 +61,18 @@ class HexPatch {
         try handle.seek(toOffset: offset)
         guard let data = try handle.read(upToCount: Int(length)) else { return [] }
 
-        var matches = ContiguousArray<UInt64>()
-        let patternLength = pattern.count
-
         if !pattern.contains(where: { $0 == nil }) {
             let patternBytes = pattern.compactMap { $0 }
             return try searchExactPattern(in: data, pattern: patternBytes, offset: offset)
+        }
+
+        var matches = ContiguousArray<UInt64>()
+        let patternLength = pattern.count
+
+        guard let firstAnchorIndex = pattern.firstIndex(where: { $0 != nil }),
+            let firstAnchorByte = pattern[firstAnchorIndex]
+        else {
+            return []
         }
 
         return data.withUnsafeBytes { buffer -> [UInt64] in
@@ -76,20 +82,27 @@ class HexPatch {
             while index <= data.count - patternLength {
                 if matches.count >= maxMatchesPerChunk { break }
 
+                if ptr[index + firstAnchorIndex] != firstAnchorByte {
+                    index += 1
+                    continue
+                }
+
                 var isMatch = true
-                for patternIndex in 0..<patternLength {
-                    if let expectedByte = pattern[patternIndex],
-                        ptr[index + patternIndex] != expectedByte
-                    {
-                        isMatch = false
-                        break
+                for j in 0..<patternLength {
+                    if let expectedByte = pattern[j] {
+                        if ptr[index + j] != expectedByte {
+                            isMatch = false
+                            break
+                        }
                     }
                 }
 
                 if isMatch {
                     matches.append(offset + UInt64(index))
+                    index += patternLength
+                } else {
+                    index += 1
                 }
-                index += 1
             }
 
             return Array(matches)
@@ -102,80 +115,198 @@ class HexPatch {
         var matches = ContiguousArray<UInt64>()
         let patternLength = pattern.count
 
-        data.withUnsafeBytes { buffer in
+        if patternLength <= 4 {
+            return try simpleSkipSearch(in: data, pattern: pattern, offset: offset)
+        }
+
+        var skipTable = [UInt8: Int](minimumCapacity: 256)
+        for i in 0..<256 {
+            skipTable[UInt8(i)] = patternLength
+        }
+        for i in 0..<patternLength - 1 {
+            skipTable[pattern[i]] = patternLength - 1 - i
+        }
+
+        return data.withUnsafeBytes { buffer -> [UInt64] in
+            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            let length = buffer.count
+            var index = patternLength - 1
+
+            while index < length {
+                if matches.count >= maxMatchesPerChunk { break }
+
+                let currentByte = ptr[index]
+                if currentByte == pattern[patternLength - 1] {
+                    if memcmp(ptr + index - (patternLength - 1), pattern, patternLength) == 0 {
+                        matches.append(offset + UInt64(index - (patternLength - 1)))
+                        index += 1
+                        continue
+                    }
+                }
+
+                index += skipTable[currentByte]!
+            }
+
+            return Array(matches)
+        }
+    }
+
+    private func simpleSkipSearch(in data: Data, pattern: [UInt8], offset: UInt64) throws
+        -> [UInt64]
+    {
+        var matches = ContiguousArray<UInt64>()
+        let patternLength = pattern.count
+        let lastByte = pattern[patternLength - 1]
+
+        return data.withUnsafeBytes { buffer -> [UInt64] in
+            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            let length = buffer.count
+            var index = patternLength - 1
+
+            while index < length {
+                if matches.count >= maxMatchesPerChunk { break }
+
+                if ptr[index] == lastByte {
+                    if memcmp(ptr + index - (patternLength - 1), pattern, patternLength) == 0 {
+                        matches.append(offset + UInt64(index - (patternLength - 1)))
+                    }
+                }
+
+                index += patternLength
+            }
+
+            return Array(matches)
+        }
+    }
+
+    private func quickSearchWithWildcards(in data: Data, pattern: [UInt8?], offset: UInt64)
+        -> [UInt64]
+    {
+        var matches = ContiguousArray<UInt64>()
+        let patternLength = pattern.count
+
+        var shift = [UInt8: Int](minimumCapacity: 256)
+        for i in 0..<256 {
+            shift[UInt8(i)] = patternLength + 1
+        }
+
+        for i in 0..<patternLength {
+            if let byte = pattern[i] {
+                shift[byte] = patternLength - i
+            }
+        }
+
+        return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             let length = buffer.count
             var index = 0
 
-            if patternLength <= 16 {
-                while index <= length - patternLength {
-                    if matches.count >= maxMatchesPerChunk { break }
-                    if memcmp(ptr + index, pattern, patternLength) == 0 {
-                        matches.append(offset + UInt64(index))
+            while index <= length - patternLength {
+                if matches.count >= maxMatchesPerChunk { break }
+
+                var isMatch = true
+                for j in 0..<patternLength {
+                    if let expectedByte = pattern[j], ptr[index + j] != expectedByte {
+                        isMatch = false
+                        break
                     }
-                    index += 1
                 }
+
+                if isMatch {
+                    matches.append(offset + UInt64(index))
+                }
+
+                let shiftIndex = index + patternLength
+                if shiftIndex < length {
+                    index += shift[ptr[shiftIndex]] ?? patternLength + 1
+                } else {
+                    break
+                }
+            }
+
+            return Array(matches)
+        }
+    }
+
+    private func bitParallelWildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64)
+        -> [UInt64]
+    {
+        guard pattern.count <= 64 else { return [] }
+
+        var matches = ContiguousArray<UInt64>()
+        let patternLength = pattern.count
+
+        var byteMatch = [UInt64](repeating: 0, count: 256)
+        var wildcardMask: UInt64 = 0
+
+        for (i, byte) in pattern.enumerated() {
+            if let b = byte {
+                byteMatch[Int(b)] |= (1 << i)
             } else {
-                while index <= length - patternLength {
-                    if matches.count >= maxMatchesPerChunk { break }
-                    if ptr[index] == pattern[0] {
-                        var fullMatch = true
-                        for j in 1..<patternLength {
-                            if ptr[index + j] != pattern[j] {
-                                fullMatch = false
-                                break
-                            }
-                        }
-                        if fullMatch {
-                            matches.append(offset + UInt64(index))
-                        }
-                    }
-                    index += 1
-                }
+                wildcardMask |= (1 << i)
             }
         }
 
-        return Array(matches)
+        let matchMask = (1 << patternLength) - 1
+
+        return data.withUnsafeBytes { buffer -> [UInt64] in
+            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            var state: UInt64 = 0
+
+            for i in 0..<buffer.count {
+                if matches.count >= maxMatchesPerChunk { break }
+
+                state = ((state << 1) | 1) & (byteMatch[Int(ptr[i])] | wildcardMask)
+
+                if (Int(state) & matchMask) == matchMask {
+                    matches.append(offset + UInt64(i - patternLength + 1))
+                }
+            }
+
+            return Array(matches)
+        }
     }
 
     private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64] {
-        let fileSize = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
-        let chunkSize = UInt64(bufferSize)
-        let chunks = Int((fileSize + chunkSize - 1) / chunkSize)
+        return try autoreleasepool {
+            let fileSize =
+                try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
+            let chunkSize = UInt64(bufferSize)
+            let chunks = Int((fileSize + chunkSize - 1) / chunkSize)
 
-        let group = DispatchGroup()
-        let queue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
-        let processorCount = ProcessInfo.processInfo.activeProcessorCount
-        let semaphore = DispatchSemaphore(value: processorCount)
+            let queue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
+            let group = DispatchGroup()
 
-        var matches = ContiguousArray<UInt64>()
-        let matchLock = NSLock()
+            let processorCount = ProcessInfo.processInfo.activeProcessorCount
+            let chunkQueue = OperationQueue()
+            chunkQueue.maxConcurrentOperationCount = processorCount
 
-        for chunk in 0..<chunks {
-            semaphore.wait()
-            group.enter()
+            var matches = ContiguousArray<UInt64>()
+            let matchLock = NSLock()
 
-            queue.async {
-                autoreleasepool {
-                    let offset = UInt64(chunk) * chunkSize
-                    if let chunkMatches = try? self.searchChunk(
-                        url: url,
-                        offset: offset,
-                        length: min(chunkSize, fileSize - offset),
-                        pattern: pattern
-                    ) {
-                        matchLock.lock()
-                        matches.append(contentsOf: chunkMatches)
-                        matchLock.unlock()
+            for chunk in 0..<chunks {
+                group.enter()
+                queue.async {
+                    autoreleasepool {
+                        let offset = UInt64(chunk) * chunkSize
+                        if let chunkMatches = try? self.searchChunk(
+                            url: url,
+                            offset: offset,
+                            length: min(chunkSize, fileSize - offset),
+                            pattern: pattern
+                        ) {
+                            matchLock.lock()
+                            matches.append(contentsOf: chunkMatches)
+                            matchLock.unlock()
+                        }
+                        group.leave()
                     }
-                    semaphore.signal()
-                    group.leave()
                 }
             }
-        }
 
-        group.wait()
-        return Array(matches)
+            group.wait()
+            return Array(matches)
+        }
     }
 
     private func applyPatches(to filePath: String, matches: [UInt64], replacement: [UInt8?]) throws
