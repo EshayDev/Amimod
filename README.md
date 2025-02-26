@@ -17,6 +17,8 @@
   
 - **Progress Indicator:** Displays a progress indicator while the patching process is in progress, keeping the user informed of the current status.
 
+- **Benchmarking Tool:** Measure the performance of Amimod's patching process with different pattern lengths and wildcard configurations. This feature is mainly for developers wanting to test their changes to the source code.
+
 ## Tutorial
 
 This section will guide you through the different ways to use Amimod, including manual hex patching, importing hex notes, and using wildcard bytes.
@@ -159,6 +161,6 @@ While the patch is being applied, a progress indicator will appear at the bottom
 
 - **Graphics:** [eD! / EshayDev](https://github.com/EshayDev/)
 
-- **Music:** [HOME](https://home96.bandcamp.com/)
+- **Music:** [HOME](https://home96.bandcamp.com/) ([used under permission](https://x.com/RNDYGFFE/status/1595515631020957703))
 
 - **Testing:** [eD! / EshayDev](https://github.com/EshayDev/), [Antibiotics](https://github.com/Antibioticss/), [Sneethan](https://github.com/Sneethan/), [BruhgDev](https://github.com/BruhgDev/)

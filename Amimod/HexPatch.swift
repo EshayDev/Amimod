@@ -7,7 +7,6 @@ struct HexPatchOperation: Identifiable {
 }
 
 class HexPatch {
-    private let bufferSize = 4 * 1024 * 1024
     private let maxMatchesPerChunk = 1000
 
     private func parseHexPattern(
@@ -52,6 +51,248 @@ class HexPatch {
         return result
     }
 
+    private func wideWindowBMH(in data: Data, pattern: [UInt8], offset: UInt64) -> [UInt64] {
+        var matches = ContiguousArray<UInt64>()
+        let patternLength = pattern.count
+        let dataLength = data.count
+
+        guard patternLength > 0, dataLength >= patternLength else {
+            return []
+        }
+
+        let badCharTable: [UInt16] = {
+            var table = [UInt16](repeating: UInt16(patternLength), count: 256)
+            for i in 0..<(patternLength - 1) {
+                table[Int(pattern[i])] = UInt16(patternLength - 1 - i)
+            }
+            return table
+        }()
+
+        data.withUnsafeBytes { buffer in
+            let ptr = buffer.bindMemory(to: UInt8.self).baseAddress!
+            var searchIndex = 0
+            let searchBound = dataLength - patternLength
+
+            let lastPatternByte = pattern[patternLength - 1]
+            let secondLastPatternByte = patternLength > 1 ? pattern[patternLength - 2] : 0
+
+            let simdPattern =
+                patternLength >= 16 ? SIMD16<UInt8>(pattern[0..<min(16, patternLength)]) : nil
+
+            while searchIndex <= searchBound {
+                let lastDataByte = ptr[searchIndex + patternLength - 1]
+
+                if lastDataByte == lastPatternByte
+                    && (patternLength == 1
+                        || ptr[searchIndex + patternLength - 2] == secondLastPatternByte)
+                {
+
+                    var matched = true
+                    if patternLength >= 16 {
+                        let dataChunk = UnsafeRawPointer(ptr + searchIndex).assumingMemoryBound(
+                            to: SIMD16<UInt8>.self
+                        ).pointee
+                        if dataChunk != simdPattern! {
+                            matched = false
+                        } else {
+                            let remainingStart = 16
+                            if remainingStart < patternLength {
+                                for i in stride(from: remainingStart, to: patternLength - 2, by: 8)
+                                {
+                                    let end = min(i + 8, patternLength - 2)
+                                    for j in i..<end {
+                                        if pattern[j] != ptr[searchIndex + j] {
+                                            matched = false
+                                            break
+                                        }
+                                    }
+                                    if !matched { break }
+                                }
+                            }
+                        }
+                    } else {
+                        var i = 0
+                        while i < patternLength - 2 {
+                            if i + 4 <= patternLength - 2 {
+                                if pattern[i] != ptr[searchIndex + i]
+                                    || pattern[i + 1] != ptr[searchIndex + i + 1]
+                                    || pattern[i + 2] != ptr[searchIndex + i + 2]
+                                    || pattern[i + 3] != ptr[searchIndex + i + 3]
+                                {
+                                    matched = false
+                                    break
+                                }
+                                i += 4
+                            } else {
+                                if pattern[i] != ptr[searchIndex + i] {
+                                    matched = false
+                                    break
+                                }
+                                i += 1
+                            }
+                        }
+                    }
+
+                    if matched {
+                        matches.append(offset + UInt64(searchIndex))
+                        if matches.count >= maxMatchesPerChunk {
+                            break
+                        }
+                        searchIndex += patternLength
+                        continue
+                    }
+                }
+
+                searchIndex += Int(badCharTable[Int(lastDataByte)])
+            }
+        }
+
+        return Array(matches)
+    }
+
+    private func createBadCharTable(pattern: [UInt8?]) -> [Int] {
+        var badChar = [Int](repeating: pattern.count, count: 256)
+
+        for i in 0..<pattern.count {
+            if let byte = pattern[i] {
+                badChar[Int(byte)] = pattern.count - 1 - i
+            }
+        }
+
+        return badChar
+    }
+
+    private func wildcardBoyerMoore(in data: Data, pattern: [UInt8?], offset: UInt64) -> [UInt64] {
+        var matches = ContiguousArray<UInt64>()
+        let m = pattern.count
+        let n = data.count
+
+        guard m > 0, n >= m else { return [] }
+
+        var anchorPoints = [(index: Int, byte: UInt8)]()
+        for (index, byte) in pattern.enumerated() {
+            if let nonWildcard = byte {
+                anchorPoints.append((index, nonWildcard))
+                if anchorPoints.count >= 10 { break }
+            }
+        }
+
+        guard !anchorPoints.isEmpty else { return [] }
+
+        let primaryAnchor = anchorPoints[0]
+        let badChar = createBadCharTable(pattern: pattern)
+
+        return data.withUnsafeBytes { buffer -> [UInt64] in
+            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
+            var shift = 0
+
+            while shift <= (n - m) {
+                if matches.count >= maxMatchesPerChunk { break }
+
+                if ptr[shift + primaryAnchor.index] != primaryAnchor.byte {
+                    shift += 1
+                    continue
+                }
+
+                var shouldContinue = false
+                for anchor in anchorPoints.dropFirst() {
+                    if ptr[shift + anchor.index] != anchor.byte {
+                        shouldContinue = true
+                        break
+                    }
+                }
+                if shouldContinue {
+                    shift += 1
+                    continue
+                }
+
+                var matched = true
+                var i = 0
+                while i < m {
+                    if let patternByte = pattern[i] {
+                        if patternByte != ptr[shift + i] {
+                            matched = false
+                            break
+                        }
+                    }
+                    i += 1
+                }
+
+                if matched {
+                    matches.append(offset + UInt64(shift))
+                    shift += m / 4
+                } else {
+                    shift += max(1, min(badChar[Int(ptr[shift + m - 1])], m / 8))
+                }
+            }
+
+            return Array(matches)
+        }
+    }
+
+    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64] {
+        let fileSize = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
+        let processorCount = ProcessInfo.processInfo.activeProcessorCount
+
+        let patternLength = UInt64(pattern.count)
+        let minChunkSize: UInt64 = 4 * 1024 * 1024
+        let maxChunkSize: UInt64 = 32 * 1024 * 1024
+        let idealChunkSize = max(min(fileSize / UInt64(processorCount), maxChunkSize), minChunkSize)
+
+        let overlap = patternLength - 1
+        let totalChunks = Int((fileSize + idealChunkSize - 1) / idealChunkSize)
+
+        let chunkQueue = OperationQueue()
+        chunkQueue.maxConcurrentOperationCount = processorCount
+
+        var matches = [UInt64]()
+        var results = Array(repeating: [UInt64](), count: totalChunks)
+        let resultsLock = NSLock()
+
+        for chunkIndex in 0..<totalChunks {
+            chunkQueue.addOperation {
+                autoreleasepool {
+                    let chunkStart = UInt64(chunkIndex) * idealChunkSize
+                    let isLastChunk = chunkIndex == totalChunks - 1
+
+                    let baseLength = min(idealChunkSize, fileSize - chunkStart)
+                    let overlapLength = isLastChunk ? 0 : overlap
+                    let totalLength = min(baseLength + overlapLength, fileSize - chunkStart)
+
+                    do {
+                        let chunkMatches = try self.searchChunk(
+                            url: url,
+                            offset: chunkStart,
+                            length: totalLength,
+                            pattern: pattern
+                        )
+
+                        let validMatches = chunkMatches.filter { matchOffset in
+                            if isLastChunk {
+                                return true
+                            }
+                            return matchOffset < chunkStart + idealChunkSize
+                        }
+
+                        resultsLock.lock()
+                        results[chunkIndex] = validMatches
+                        resultsLock.unlock()
+                    } catch {
+                        print("Error processing chunk \(chunkIndex): \(error)")
+                    }
+                }
+            }
+        }
+
+        chunkQueue.waitUntilAllOperationsAreFinished()
+
+        for chunkMatches in results {
+            matches.append(contentsOf: chunkMatches)
+        }
+
+        return matches.sorted()
+    }
+
     private func searchChunk(url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?]) throws
         -> [UInt64]
     {
@@ -63,249 +304,9 @@ class HexPatch {
 
         if !pattern.contains(where: { $0 == nil }) {
             let patternBytes = pattern.compactMap { $0 }
-            return try searchExactPattern(in: data, pattern: patternBytes, offset: offset)
-        }
-
-        var matches = ContiguousArray<UInt64>()
-        let patternLength = pattern.count
-
-        guard let firstAnchorIndex = pattern.firstIndex(where: { $0 != nil }),
-            let firstAnchorByte = pattern[firstAnchorIndex]
-        else {
-            return []
-        }
-
-        return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            var index = 0
-
-            while index <= data.count - patternLength {
-                if matches.count >= maxMatchesPerChunk { break }
-
-                if ptr[index + firstAnchorIndex] != firstAnchorByte {
-                    index += 1
-                    continue
-                }
-
-                var isMatch = true
-                for j in 0..<patternLength {
-                    if let expectedByte = pattern[j] {
-                        if ptr[index + j] != expectedByte {
-                            isMatch = false
-                            break
-                        }
-                    }
-                }
-
-                if isMatch {
-                    matches.append(offset + UInt64(index))
-                    index += patternLength
-                } else {
-                    index += 1
-                }
-            }
-
-            return Array(matches)
-        }
-    }
-
-    private func searchExactPattern(in data: Data, pattern: [UInt8], offset: UInt64) throws
-        -> [UInt64]
-    {
-        var matches = ContiguousArray<UInt64>()
-        let patternLength = pattern.count
-
-        if patternLength <= 4 {
-            return try simpleSkipSearch(in: data, pattern: pattern, offset: offset)
-        }
-
-        var skipTable = [UInt8: Int](minimumCapacity: 256)
-        for i in 0..<256 {
-            skipTable[UInt8(i)] = patternLength
-        }
-        for i in 0..<patternLength - 1 {
-            skipTable[pattern[i]] = patternLength - 1 - i
-        }
-
-        return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            let length = buffer.count
-            var index = patternLength - 1
-
-            while index < length {
-                if matches.count >= maxMatchesPerChunk { break }
-
-                let currentByte = ptr[index]
-                if currentByte == pattern[patternLength - 1] {
-                    if memcmp(ptr + index - (patternLength - 1), pattern, patternLength) == 0 {
-                        matches.append(offset + UInt64(index - (patternLength - 1)))
-                        index += 1
-                        continue
-                    }
-                }
-
-                index += skipTable[currentByte]!
-            }
-
-            return Array(matches)
-        }
-    }
-
-    private func simpleSkipSearch(in data: Data, pattern: [UInt8], offset: UInt64) throws
-        -> [UInt64]
-    {
-        var matches = ContiguousArray<UInt64>()
-        let patternLength = pattern.count
-        let lastByte = pattern[patternLength - 1]
-
-        return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            let length = buffer.count
-            var index = patternLength - 1
-
-            while index < length {
-                if matches.count >= maxMatchesPerChunk { break }
-
-                if ptr[index] == lastByte {
-                    if memcmp(ptr + index - (patternLength - 1), pattern, patternLength) == 0 {
-                        matches.append(offset + UInt64(index - (patternLength - 1)))
-                    }
-                }
-
-                index += patternLength
-            }
-
-            return Array(matches)
-        }
-    }
-
-    private func quickSearchWithWildcards(in data: Data, pattern: [UInt8?], offset: UInt64)
-        -> [UInt64]
-    {
-        var matches = ContiguousArray<UInt64>()
-        let patternLength = pattern.count
-
-        var shift = [UInt8: Int](minimumCapacity: 256)
-        for i in 0..<256 {
-            shift[UInt8(i)] = patternLength + 1
-        }
-
-        for i in 0..<patternLength {
-            if let byte = pattern[i] {
-                shift[byte] = patternLength - i
-            }
-        }
-
-        return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            let length = buffer.count
-            var index = 0
-
-            while index <= length - patternLength {
-                if matches.count >= maxMatchesPerChunk { break }
-
-                var isMatch = true
-                for j in 0..<patternLength {
-                    if let expectedByte = pattern[j], ptr[index + j] != expectedByte {
-                        isMatch = false
-                        break
-                    }
-                }
-
-                if isMatch {
-                    matches.append(offset + UInt64(index))
-                }
-
-                let shiftIndex = index + patternLength
-                if shiftIndex < length {
-                    index += shift[ptr[shiftIndex]] ?? patternLength + 1
-                } else {
-                    break
-                }
-            }
-
-            return Array(matches)
-        }
-    }
-
-    private func bitParallelWildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64)
-        -> [UInt64]
-    {
-        guard pattern.count <= 64 else { return [] }
-
-        var matches = ContiguousArray<UInt64>()
-        let patternLength = pattern.count
-
-        var byteMatch = [UInt64](repeating: 0, count: 256)
-        var wildcardMask: UInt64 = 0
-
-        for (i, byte) in pattern.enumerated() {
-            if let b = byte {
-                byteMatch[Int(b)] |= (1 << i)
-            } else {
-                wildcardMask |= (1 << i)
-            }
-        }
-
-        let matchMask = (1 << patternLength) - 1
-
-        return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            var state: UInt64 = 0
-
-            for i in 0..<buffer.count {
-                if matches.count >= maxMatchesPerChunk { break }
-
-                state = ((state << 1) | 1) & (byteMatch[Int(ptr[i])] | wildcardMask)
-
-                if (Int(state) & matchMask) == matchMask {
-                    matches.append(offset + UInt64(i - patternLength + 1))
-                }
-            }
-
-            return Array(matches)
-        }
-    }
-
-    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64] {
-        return try autoreleasepool {
-            let fileSize =
-                try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
-            let chunkSize = UInt64(bufferSize)
-            let chunks = Int((fileSize + chunkSize - 1) / chunkSize)
-
-            let queue = DispatchQueue(label: "team.ediso.amimod.matches", attributes: .concurrent)
-            let group = DispatchGroup()
-
-            let processorCount = ProcessInfo.processInfo.activeProcessorCount
-            let chunkQueue = OperationQueue()
-            chunkQueue.maxConcurrentOperationCount = processorCount
-
-            var matches = ContiguousArray<UInt64>()
-            let matchLock = NSLock()
-
-            for chunk in 0..<chunks {
-                group.enter()
-                queue.async {
-                    autoreleasepool {
-                        let offset = UInt64(chunk) * chunkSize
-                        if let chunkMatches = try? self.searchChunk(
-                            url: url,
-                            offset: offset,
-                            length: min(chunkSize, fileSize - offset),
-                            pattern: pattern
-                        ) {
-                            matchLock.lock()
-                            matches.append(contentsOf: chunkMatches)
-                            matchLock.unlock()
-                        }
-                        group.leave()
-                    }
-                }
-            }
-
-            group.wait()
-            return Array(matches)
+            return wideWindowBMH(in: data, pattern: patternBytes, offset: offset)
+        } else {
+            return wildcardBoyerMoore(in: data, pattern: pattern, offset: offset)
         }
     }
 
@@ -339,28 +340,33 @@ class HexPatch {
     }
 
     func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
+        let dynamicHexPatch = HexPatch()
+
         for patch in patches {
-            let pattern = try parseHexPattern(patch.findHex)
-            let replacement = try parseHexPattern(
+            let pattern = try dynamicHexPatch.parseHexPattern(patch.findHex)
+            let replacement = try dynamicHexPatch.parseHexPattern(
                 patch.replaceHex, isReplacement: true, originalPattern: pattern)
 
-            let matches = try findMatches(in: URL(fileURLWithPath: filePath), pattern: pattern)
+            let matches = try dynamicHexPatch.findMatches(
+                in: URL(fileURLWithPath: filePath), pattern: pattern)
 
             if matches.isEmpty {
                 throw HexPatchError.hexNotFound(description: "Pattern not found: \(patch.findHex)")
             }
 
-            try applyPatches(to: filePath, matches: matches, replacement: replacement)
+            try dynamicHexPatch.applyPatches(
+                to: filePath, matches: matches, replacement: replacement)
         }
     }
 
     func countTotalMatches(in filePath: String, patches: [HexPatchOperation]) throws -> Int {
         var totalMatches = 0
         let maxMatchesPerPatch = 50000
+        let dynamicHexPatch = HexPatch()
 
         for patch in patches {
-            let pattern = try parseHexPattern(patch.findHex)
-            let replacement = try parseHexPattern(
+            let pattern = try dynamicHexPatch.parseHexPattern(patch.findHex)
+            let replacement = try dynamicHexPatch.parseHexPattern(
                 patch.replaceHex, isReplacement: true, originalPattern: pattern)
 
             guard pattern.count == replacement.count else {
@@ -368,7 +374,8 @@ class HexPatch {
                     description: "Find and replace hex strings must have the same amount of bytes.")
             }
 
-            let matches = try findMatches(in: URL(fileURLWithPath: filePath), pattern: pattern)
+            let matches = try dynamicHexPatch.findMatches(
+                in: URL(fileURLWithPath: filePath), pattern: pattern)
 
             if matches.count > maxMatchesPerPatch {
                 throw HexPatchError.invalidInput(

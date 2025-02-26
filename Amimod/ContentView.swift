@@ -23,6 +23,7 @@ struct ContentView: View {
     @State private var usingImportedPatches: Bool = false
     @State private var isPatching: Bool = false
     @State private var confirmationMessage = ""
+    @State private var isBenchmarking: Bool = false
 
     enum AlertType: Identifiable {
         case confirmation
@@ -264,17 +265,17 @@ struct ContentView: View {
                 .disabled(usingImportedPatches)
             }
 
-            if isPatching {
+            if isPatching || isBenchmarking {
                 HStack {
                     ZStack {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .scaleEffect(0.5)
-                            .opacity(isPatching ? 1 : 0)
+                            .opacity((isPatching || isBenchmarking) ? 1 : 0)
                     }
                     .frame(width: 20, height: 20)
 
-                    Text("Patching...")
+                    Text(isPatching ? "Patching..." : "Benchmarking...")
                         .font(.system(size: 14))
                         .foregroundColor(.gray)
                 }
@@ -329,6 +330,7 @@ struct ContentView: View {
                             systemName: audioManager.isPaused
                                 ? "speaker.slash.fill" : "speaker.wave.2.fill")
                     }
+                    .help(audioManager.isPaused ? "Play Music" : "Pause Music")
 
                     Button(action: {
                         if usingImportedPatches {
@@ -344,6 +346,14 @@ struct ContentView: View {
                     }
                     .help(usingImportedPatches ? "Clear Imported Hex Notes" : "Import Hex Notes")
                     .disabled(filePath.isEmpty)
+
+                    Button(action: {
+                        runBenchmark()
+                    }) {
+                        Image(systemName: "speedometer")
+                    }
+                    .help("Run Benchmark")
+                    .disabled(isPatching || isBenchmarking)
                 }
             }
         }
@@ -495,6 +505,165 @@ struct ContentView: View {
         } catch {
             print("Error listing contents of \(directoryURL.path): \(error.localizedDescription)")
         }
+    }
+
+    private func createTempCopy(of url: URL) throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "benchmark_\(UUID().uuidString)_\(url.lastPathComponent)"
+        let tempURL = tempDir.appendingPathComponent(fileName)
+
+        try FileManager.default.copyItem(at: url, to: tempURL)
+        return tempURL
+    }
+
+    func runBenchmark() {
+        isBenchmarking = true
+
+        let patternLengths = [8, 16, 32, 64, 128, 256]
+        let wildcardTests = [false, true]
+        let numberOfRuns = 5
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            var results: [String] = []
+
+            guard let selectedExecutablePath = selectedExecutable?.fullPath else {
+                DispatchQueue.main.async {
+                    activeAlert = .message(title: "Error", message: "No executable selected.")
+                    isBenchmarking = false
+                }
+                return
+            }
+
+            let executableURL = URL(fileURLWithPath: selectedExecutablePath)
+
+            do {
+                let fileData = try Data(contentsOf: executableURL)
+                let fileSizeInMB = Double(fileData.count) / (1024.0 * 1024.0)
+                let hexPatcher = HexPatch()
+
+                let tempURL = try createTempCopy(of: executableURL)
+                defer { try? FileManager.default.removeItem(at: tempURL) }
+
+                for patternLength in patternLengths {
+                    for useWildcards in wildcardTests {
+                        var durations: [Double] = []
+
+                        for _ in 0..<numberOfRuns {
+                            try fileData.write(to: tempURL)
+
+                            let patternResult = getRandomHexPattern(
+                                from: fileData,
+                                length: patternLength,
+                                withWildcards: useWildcards
+                            )
+
+                            guard let (findHex, replaceHex) = patternResult else {
+                                print(
+                                    "Skipping test: \(patternLength) bytes, wildcards \(useWildcards) - not enough data."
+                                )
+                                continue
+                            }
+
+                            let patch = HexPatchOperation(findHex: findHex, replaceHex: replaceHex)
+
+                            let startTime = DispatchTime.now()
+                            try hexPatcher.findAndReplaceHexStrings(
+                                in: tempURL.path,
+                                patches: [patch]
+                            )
+                            let endTime = DispatchTime.now()
+
+                            let durationNanoseconds =
+                                endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
+                            let durationSeconds = Double(durationNanoseconds) / 1_000_000_000
+                            durations.append(durationSeconds)
+                        }
+
+                        if !durations.isEmpty {
+                            let averageDuration = durations.reduce(0, +) / Double(durations.count)
+
+                            let formattedDuration: String
+                            if averageDuration >= 1.0 {
+                                formattedDuration = String(format: "%.0f seconds", averageDuration)
+                            } else if averageDuration >= 0.001 {
+                                let milliseconds = averageDuration * 1_000
+                                formattedDuration = String(format: "%.0f ms", milliseconds)
+                            } else if averageDuration >= 0.000001 {
+                                let microseconds = averageDuration * 1_000_000
+                                formattedDuration = String(format: "%.0f µs", microseconds)
+                            } else {
+                                let nanoseconds = averageDuration * 1_000_000_000
+                                formattedDuration = "\(Int(nanoseconds)) ns"
+                            }
+
+                            let testName = String(
+                                format: "%.2fMB, %dBytes, Wildcards: %@",
+                                fileSizeInMB,
+                                patternLength,
+                                useWildcards ? "true" : "false"
+                            )
+                            let resultString =
+                                "\(testName): \(formattedDuration) (averaged over \(numberOfRuns) runs)"
+                            print(resultString)
+                            results.append(resultString)
+                        }
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    isBenchmarking = false
+                    activeAlert = .message(
+                        title: "Benchmark Error",
+                        message: "Error during benchmark: \(error.localizedDescription)"
+                    )
+                }
+                return
+            }
+
+            DispatchQueue.main.async {
+                isBenchmarking = false
+                let allResults = results.joined(separator: "\n")
+                activeAlert = .message(title: "Benchmark Results", message: allResults)
+            }
+        }
+    }
+
+    func getRandomHexPattern(from data: Data, length: Int, withWildcards: Bool = false) -> (
+        findHex: String, replaceHex: String
+    )? {
+        guard data.count >= length else { return nil }
+
+        let startIndex = Int.random(in: 0...(data.count - length))
+        let endIndex = startIndex + length
+        let subdata = data.subdata(in: startIndex..<endIndex)
+
+        var findHex = ""
+        var replaceHex = ""
+
+        subdata.forEach { byte in
+            findHex += String(format: "%02X ", byte)
+            replaceHex += "00 "
+        }
+
+        if withWildcards {
+            var findHexArray = findHex.components(separatedBy: " ")
+            findHexArray.removeLast()
+            let numWildcards = length / 4
+            var wildcardIndices: [Int] = []
+            if length > 2 {
+                wildcardIndices = Array((1...(length - 2)).shuffled().prefix(numWildcards))
+            }
+
+            for index in wildcardIndices {
+                findHexArray[index] = "??"
+            }
+
+            findHex = findHexArray.joined(separator: " ")
+        }
+
+        return (
+            findHex, String(repeating: "00 ", count: length).trimmingCharacters(in: .whitespaces)
+        )
     }
 
     private func refreshExecutables() {
