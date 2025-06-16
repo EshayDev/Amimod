@@ -233,6 +233,9 @@ struct ContentView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.leading)
                 .disabled(usingImportedPatches)
+                .onChange(of: findHex) { newValue in
+                    findHex = newValue.components(separatedBy: .newlines).joined()
+                }
 
                 Button(action: {
                     findHex = ""
@@ -253,6 +256,9 @@ struct ContentView: View {
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.leading)
                 .disabled(usingImportedPatches)
+                .onChange(of: replaceHex) { newValue in
+                    replaceHex = newValue.components(separatedBy: .newlines).joined()
+                }
 
                 Button(action: {
                     replaceHex = ""
@@ -483,7 +489,7 @@ struct ContentView: View {
                         if isDirectory.boolValue {
                             let lastPathComponent = url.lastPathComponent
                             if lastPathComponent != "Resources" && lastPathComponent != "__MACOSX"
-                                && lastPathComponent != "Current"
+                                && lastPathComponent != "Current" && lastPathComponent != "_CodeSignature" && lastPathComponent != "CodeResources"
                             {
                                 listExecutablesRecursively(
                                     in: url,
@@ -492,12 +498,30 @@ struct ContentView: View {
                                 )
                             }
                         } else {
-                            let formattedName = "\(rootFolder) \(url.lastPathComponent)"
-                            let executable = Executable(
-                                formattedName: formattedName,
-                                fullPath: url.path
-                            )
-                            executables.append(executable)
+                            do {
+                                let resolvedURL = try URL.init(resolvingAliasFileAt: url)
+                                if url.path == resolvedURL.path {
+                                    let lastPathComponent = url.lastPathComponent
+                                    if lastPathComponent != "Info.plist" && lastPathComponent != "PkgInfo" {
+                                        let formattedName = "\(rootFolder) \(lastPathComponent)"
+                                        let executable = Executable(
+                                            formattedName: formattedName,
+                                            fullPath: url.path
+                                        )
+                                        executables.append(executable)
+                                    }
+                                }
+                            } catch {
+                                let lastPathComponent = url.lastPathComponent
+                                if lastPathComponent != "Info.plist" && lastPathComponent != "PkgInfo" {
+                                    let formattedName = "\(rootFolder) \(lastPathComponent)"
+                                    let executable = Executable(
+                                        formattedName: formattedName,
+                                        fullPath: url.path
+                                    )
+                                    executables.append(executable)
+                                }
+                            }
                         }
                     }
                 }

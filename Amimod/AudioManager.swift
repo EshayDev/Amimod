@@ -4,12 +4,17 @@ import SwiftUI
 
 class AudioManager: ObservableObject {
     static let audioManager = AudioManager()
-    @Published var isPaused: Bool = false
+    @AppStorage("isMusicPaused") var isPaused: Bool = false
 
     var audioPlayer: AVAudioPlayer?
 
     init() {
         setupAudio()
+        if isPaused {
+            audioPlayer?.pause()
+        } else {
+            audioPlayer?.play()
+        }
     }
 
     func setupAudio() {
@@ -22,7 +27,6 @@ class AudioManager: ObservableObject {
         audioPlayer = try? AVAudioPlayer(contentsOf: url)
         audioPlayer?.numberOfLoops = -1
         audioPlayer?.prepareToPlay()
-        audioPlayer?.play()
     }
 
     func togglePause() {

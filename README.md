@@ -1,4 +1,4 @@
-# 💛 Amimod
+# 💜 Amimod
 **A hex patching tool made for crackers, by crackers.**
 
 ## Features

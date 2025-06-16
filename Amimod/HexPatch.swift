@@ -1,12 +1,12 @@
 import Foundation
 
-struct HexPatchOperation: Identifiable {
-    let id = UUID()
-    let findHex: String
-    let replaceHex: String
+public struct HexPatchOperation: Identifiable {
+    public let id = UUID()
+    public let findHex: String
+    public let replaceHex: String
 }
 
-class HexPatch {
+public class HexPatch {
     private let maxMatchesPerChunk = 1000
 
     private func parseHexPattern(
@@ -389,7 +389,7 @@ class HexPatch {
         return totalMatches
     }
 
-    enum HexPatchError: Error {
+    public enum HexPatchError: Error {
         case emptyHexStrings
         case hexStringLengthMismatch(description: String)
         case invalidHexString(description: String)
