@@ -7,6 +7,26 @@ struct Executable: Identifiable, Hashable {
     let fullPath: String
 }
 
+struct BenchmarkResult: Identifiable {
+    let id = UUID()
+    let patternSize: Int
+    let hasWildcards: Bool
+    let duration: Double
+    let fileSize: Double
+
+    var formattedDuration: String {
+        if duration >= 1000 {
+            return String(format: "%.1f s", duration / 1000)
+        } else {
+            return String(format: "%.0f ms", duration)
+        }
+    }
+
+    var wildcardText: String {
+        hasWildcards ? "Yes" : "No"
+    }
+}
+
 struct ContentView: View {
     @StateObject var audioManager = AudioManager.audioManager
     @State private var isPaused: Bool = false
@@ -24,6 +44,8 @@ struct ContentView: View {
     @State private var isPatching: Bool = false
     @State private var confirmationMessage = ""
     @State private var isBenchmarking: Bool = false
+    @State private var showBenchmarkResults = false
+    @State private var benchmarkResults: [BenchmarkResult] = []
 
     enum AlertType: Identifiable {
         case confirmation
@@ -325,6 +347,9 @@ struct ContentView: View {
                 }
             )
         }
+        .sheet(isPresented: $showBenchmarkResults) {
+            BenchmarkResultsView(results: benchmarkResults)
+        }
         .environmentObject(audioManager)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -489,7 +514,9 @@ struct ContentView: View {
                         if isDirectory.boolValue {
                             let lastPathComponent = url.lastPathComponent
                             if lastPathComponent != "Resources" && lastPathComponent != "__MACOSX"
-                                && lastPathComponent != "Current" && lastPathComponent != "_CodeSignature" && lastPathComponent != "CodeResources"
+                                && lastPathComponent != "Current"
+                                && lastPathComponent != "_CodeSignature"
+                                && lastPathComponent != "CodeResources"
                             {
                                 listExecutablesRecursively(
                                     in: url,
@@ -502,7 +529,9 @@ struct ContentView: View {
                                 let resolvedURL = try URL.init(resolvingAliasFileAt: url)
                                 if url.path == resolvedURL.path {
                                     let lastPathComponent = url.lastPathComponent
-                                    if lastPathComponent != "Info.plist" && lastPathComponent != "PkgInfo" {
+                                    if lastPathComponent != "Info.plist"
+                                        && lastPathComponent != "PkgInfo"
+                                    {
                                         let formattedName = "\(rootFolder) \(lastPathComponent)"
                                         let executable = Executable(
                                             formattedName: formattedName,
@@ -513,7 +542,9 @@ struct ContentView: View {
                                 }
                             } catch {
                                 let lastPathComponent = url.lastPathComponent
-                                if lastPathComponent != "Info.plist" && lastPathComponent != "PkgInfo" {
+                                if lastPathComponent != "Info.plist"
+                                    && lastPathComponent != "PkgInfo"
+                                {
                                     let formattedName = "\(rootFolder) \(lastPathComponent)"
                                     let executable = Executable(
                                         formattedName: formattedName,
@@ -548,7 +579,7 @@ struct ContentView: View {
         let numberOfRuns = 5
 
         DispatchQueue.global(qos: .userInitiated).async {
-            var results: [String] = []
+            var results: [BenchmarkResult] = []
 
             guard let selectedExecutablePath = selectedExecutable?.fullPath else {
                 DispatchQueue.main.async {
@@ -606,30 +637,14 @@ struct ContentView: View {
                         if !durations.isEmpty {
                             let averageDuration = durations.reduce(0, +) / Double(durations.count)
 
-                            let formattedDuration: String
-                            if averageDuration >= 1.0 {
-                                formattedDuration = String(format: "%.0f seconds", averageDuration)
-                            } else if averageDuration >= 0.001 {
-                                let milliseconds = averageDuration * 1_000
-                                formattedDuration = String(format: "%.0f ms", milliseconds)
-                            } else if averageDuration >= 0.000001 {
-                                let microseconds = averageDuration * 1_000_000
-                                formattedDuration = String(format: "%.0f µs", microseconds)
-                            } else {
-                                let nanoseconds = averageDuration * 1_000_000_000
-                                formattedDuration = "\(Int(nanoseconds)) ns"
-                            }
-
-                            let testName = String(
-                                format: "%.2fMB, %dBytes, Wildcards: %@",
-                                fileSizeInMB,
-                                patternLength,
-                                useWildcards ? "true" : "false"
+                            let durationInMs = averageDuration * 1000
+                            let result = BenchmarkResult(
+                                patternSize: patternLength,
+                                hasWildcards: useWildcards,
+                                duration: durationInMs,
+                                fileSize: fileSizeInMB
                             )
-                            let resultString =
-                                "\(testName): \(formattedDuration) (averaged over \(numberOfRuns) runs)"
-                            print(resultString)
-                            results.append(resultString)
+                            results.append(result)
                         }
                     }
                 }
@@ -646,8 +661,8 @@ struct ContentView: View {
 
             DispatchQueue.main.async {
                 isBenchmarking = false
-                let allResults = results.joined(separator: "\n")
-                activeAlert = .message(title: "Benchmark Results", message: allResults)
+                benchmarkResults = results
+                showBenchmarkResults = true
             }
         }
     }
@@ -733,5 +748,214 @@ struct ContentView: View {
             .padding()
             .frame(width: 500, height: 400)
         }
+    }
+}
+
+struct BenchmarkResultsView: View {
+    let results: [BenchmarkResult]
+    @State private var showChart = false
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Benchmark Results")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                Button("Close") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+                .keyboardShortcut(.escape)
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+
+            Picker("", selection: $showChart) {
+                Text("Table").tag(false)
+                Text("Chart").tag(true)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .padding()
+
+            if showChart {
+                chartView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                tableView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(minWidth: 800, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+    }
+
+    private var tableView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Pattern Size")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("Without Wildcards")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                Text("With Wildcards")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            .background(Color.gray.opacity(0.2))
+
+            Divider()
+
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    let groupedResults = Dictionary(grouping: results) { $0.patternSize }
+                    let sortedSizes = groupedResults.keys.sorted()
+
+                    ForEach(Array(sortedSizes.enumerated()), id: \.element) { index, patternSize in
+                        let sizeResults = groupedResults[patternSize] ?? []
+                        let withoutWildcards = sizeResults.first { !$0.hasWildcards }
+                        let withWildcards = sizeResults.first { $0.hasWildcards }
+
+                        HStack {
+                            Text("\(patternSize) bytes")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Text(withoutWildcards?.formattedDuration ?? "—")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.blue)
+                                .frame(maxWidth: .infinity, alignment: .center)
+
+                            Text(withWildcards?.formattedDuration ?? "—")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(.orange)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(index % 2 == 0 ? Color.clear : Color.gray.opacity(0.05))
+
+                        Divider()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var chartView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Performance Comparison")
+                .font(.headline)
+                .padding(.horizontal)
+
+            GeometryReader { geometry in
+                let maxDuration = results.map { $0.duration }.max() ?? 100
+                let minDuration = results.map { $0.duration }.min() ?? 0
+                let range = maxDuration - minDuration
+                let width = geometry.size.width - 80
+                let height = geometry.size.height - 80
+
+                let gridInterval: Double = {
+                    if range <= 6 {
+                        return 0.5
+                    } else if range <= 15 {
+                        return 1.0
+                    } else if range <= 50 {
+                        return 5.0
+                    } else {
+                        return 10.0
+                    }
+                }()
+
+                let gridStart = (minDuration / gridInterval).rounded(.down) * gridInterval
+                let gridEnd = (maxDuration / gridInterval).rounded(.up) * gridInterval
+                let gridCount = Int((gridEnd - gridStart) / gridInterval) + 1
+
+                VStack(alignment: .leading, spacing: 0) {
+                    ZStack(alignment: .bottomLeading) {
+                        VStack(spacing: 0) {
+                            ForEach(0..<gridCount, id: \.self) { i in
+                                let value = gridEnd - Double(i) * gridInterval
+                                HStack {
+                                    Text(
+                                        String(format: gridInterval < 1.0 ? "%.1f" : "%.0f", value)
+                                    )
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .frame(width: 60, alignment: .trailing)
+                                    Rectangle()
+                                        .fill(Color.gray.opacity(0.2))
+                                        .frame(height: 1)
+                                }
+                                if i < gridCount - 1 {
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .frame(height: height)
+
+                        HStack(alignment: .bottom, spacing: 6) {
+                            ForEach(results) { result in
+                                let barHeight =
+                                    ((result.duration - gridStart) / (gridEnd - gridStart)) * height
+                                let barWidth = max(width / CGFloat(results.count) - 6, 25)
+
+                                VStack(spacing: 2) {
+                                    Text(result.formattedDuration)
+                                        .font(.caption2)
+                                        .foregroundColor(.primary)
+                                        .fontWeight(.medium)
+
+                                    Rectangle()
+                                        .fill(result.hasWildcards ? Color.orange : Color.blue)
+                                        .frame(width: barWidth, height: max(barHeight, 1))
+                                        .animation(.easeInOut(duration: 0.5), value: barHeight)
+
+                                    VStack(spacing: 0) {
+                                        Text("\(result.patternSize)")
+                                            .font(.caption2)
+                                            .foregroundColor(.primary)
+                                        Text(result.hasWildcards ? "W" : "N")
+                                            .font(.caption2)
+                                            .foregroundColor(result.hasWildcards ? .orange : .blue)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .frame(width: barWidth)
+                                }
+                            }
+                        }
+                        .padding(.leading, 70)
+                    }
+
+                    HStack(spacing: 20) {
+                        HStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.blue)
+                                .frame(width: 12, height: 12)
+                            Text("No Wildcards")
+                                .font(.caption)
+                        }
+                        HStack(spacing: 4) {
+                            Rectangle()
+                                .fill(Color.orange)
+                                .frame(width: 12, height: 12)
+                            Text("With Wildcards")
+                                .font(.caption)
+                        }
+                    }
+                    .padding(.horizontal, 70)
+                    .padding(.top, 8)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
