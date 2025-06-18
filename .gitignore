@@ -2,7 +2,8 @@
 *.xcworkspace
 *.xcuserstate
 *.xcuserdatad/
-xcuserdata/
+**/xcuserdata/
+**/xcshareddata/
 
 # Build generated
 build/

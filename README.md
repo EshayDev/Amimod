@@ -146,7 +146,7 @@ The built-in benchmark tests patching performance across different scenarios:
 | OS | macOS 11.0 (Big Sur) or later |
 | Architecture | Intel x86_64 or Apple Silicon |
 | Memory | 4GB RAM |
-| Storage | 50MB free space |
+| Storage | 30MB free space |
 
 ---
 
@@ -154,7 +154,7 @@ The built-in benchmark tests patching performance across different scenarios:
 
 **MIT License**
 
-Copyright (c) 2025 EshayDev & Contributors
+Copyright (c) 2025 TEAM EDiSO & Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -178,9 +178,12 @@ SOFTWARE.
 
 ## Credits
 
-**Development:**
+**Code:**
 - [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
+
+**Graphics (App Icon & Logo):** 
+- [EshayDev](https://github.com/EshayDev/)
 
 **Music:**
 
@@ -193,7 +196,7 @@ SOFTWARE.
 - [wasp](https://demozoo.org/sceners/11697/)
 - [Zaiko](https://demozoo.org/sceners/38408/)
 
-**Testing:**
+**App Testing:**
 - [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
 - [Sneethan](https://github.com/Sneethan/)
