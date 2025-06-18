@@ -475,6 +475,56 @@ struct ContentView: View {
         usingImportedPatches = true
     }
 
+    private func isExecutableFile(_ url: URL) -> Bool {
+        let path = url.path
+        let fileManager = FileManager.default
+
+        guard fileManager.isExecutableFile(atPath: path) else {
+            return false
+        }
+
+        let pathExtension = url.pathExtension.lowercased()
+        let nonExecutableExtensions = [
+            "h", "hpp", "c", "cpp", "m", "mm", "swift", "plist", "strings",
+            "txt", "md", "json", "xml", "nib", "xib", "storyboard",
+            "png", "jpg", "jpeg", "gif", "ico", "icns", "tiff",
+            "mp3", "wav", "aiff", "m4a", "mp4", "mov", "avi",
+            "pdf", "rtf", "html", "css", "js", "py", "rb", "pl",
+            "log", "conf", "cfg", "ini", "pem", "key", "cert",
+            "swiftmodule", "swiftdoc", "swiftsourceinfo",
+        ]
+
+        if nonExecutableExtensions.contains(pathExtension) {
+            return false
+        }
+
+        let fileName = url.lastPathComponent.lowercased()
+        if fileName.hasPrefix(".") || fileName.contains("readme") || fileName.contains("license") {
+            return false
+        }
+
+        if let fileHandle = try? FileHandle(forReadingFrom: url) {
+            defer { try? fileHandle.close() }
+
+            if let magicBytes = try? fileHandle.read(upToCount: 4) {
+                if magicBytes.count >= 4 {
+                    let magic = magicBytes.withUnsafeBytes { $0.load(as: UInt32.self) }
+                    let machOMagics: [UInt32] = [
+                        0xfeed_face,
+                        0xfeed_facf,
+                        0xcefa_edfe,
+                        0xcffa_edfe,
+                        0xcafe_babe,
+                        0xbeba_feca,
+                    ]
+                    return machOMagics.contains(magic)
+                }
+            }
+        }
+
+        return false
+    }
+
     private func listExecutables(in appBundlePath: String) -> [Executable] {
         let appBundleURL = URL(fileURLWithPath: appBundlePath)
         var executables: [Executable] = []
@@ -515,6 +565,9 @@ struct ContentView: View {
                                 && lastPathComponent != "Current"
                                 && lastPathComponent != "_CodeSignature"
                                 && lastPathComponent != "CodeResources"
+                                && lastPathComponent != "Headers"
+                                && lastPathComponent != "Modules"
+                                && lastPathComponent != "private"
                             {
                                 listExecutablesRecursively(
                                     in: url,
@@ -523,33 +576,13 @@ struct ContentView: View {
                                 )
                             }
                         } else {
-                            do {
-                                let resolvedURL = try URL.init(resolvingAliasFileAt: url)
-                                if url.path == resolvedURL.path {
-                                    let lastPathComponent = url.lastPathComponent
-                                    if lastPathComponent != "Info.plist"
-                                        && lastPathComponent != "PkgInfo"
-                                    {
-                                        let formattedName = "\(rootFolder) \(lastPathComponent)"
-                                        let executable = Executable(
-                                            formattedName: formattedName,
-                                            fullPath: url.path
-                                        )
-                                        executables.append(executable)
-                                    }
-                                }
-                            } catch {
-                                let lastPathComponent = url.lastPathComponent
-                                if lastPathComponent != "Info.plist"
-                                    && lastPathComponent != "PkgInfo"
-                                {
-                                    let formattedName = "\(rootFolder) \(lastPathComponent)"
-                                    let executable = Executable(
-                                        formattedName: formattedName,
-                                        fullPath: url.path
-                                    )
-                                    executables.append(executable)
-                                }
+                            if isExecutableFile(url) {
+                                let formattedName = "\(rootFolder) \(url.lastPathComponent)"
+                                let executable = Executable(
+                                    formattedName: formattedName,
+                                    fullPath: url.path
+                                )
+                                executables.append(executable)
                             }
                         }
                     }
@@ -705,6 +738,23 @@ struct ContentView: View {
 
     private func refreshExecutables() {
         executables = listExecutables(in: filePath)
+    }
+
+    private func getMemoryUsage() -> Double {
+        let task = mach_task_self_
+        var info = mach_task_basic_info()
+        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
+
+        let result = withUnsafeMutablePointer(to: &info) {
+            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
+                task_info(task, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
+            }
+        }
+
+        if result == KERN_SUCCESS {
+            return Double(info.resident_size) / 1024.0 / 1024.0
+        }
+        return 0
     }
 
     struct ImportSheetView: View {
