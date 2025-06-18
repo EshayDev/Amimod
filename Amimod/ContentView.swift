@@ -740,23 +740,6 @@ struct ContentView: View {
         executables = listExecutables(in: filePath)
     }
 
-    private func getMemoryUsage() -> Double {
-        let task = mach_task_self_
-        var info = mach_task_basic_info()
-        var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size) / 4
-
-        let result = withUnsafeMutablePointer(to: &info) {
-            $0.withMemoryRebound(to: integer_t.self, capacity: 1) {
-                task_info(task, task_flavor_t(MACH_TASK_BASIC_INFO), $0, &count)
-            }
-        }
-
-        if result == KERN_SUCCESS {
-            return Double(info.resident_size) / 1024.0 / 1024.0
-        }
-        return 0
-    }
-
     struct ImportSheetView: View {
         @Environment(\.presentationMode) var presentationMode
         @Binding var importedPatches: [HexPatchOperation]
