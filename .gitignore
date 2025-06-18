@@ -1,0 +1,68 @@
+# Xcode
+*.xcworkspace
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# Build generated
+build/
+DerivedData/
+*.o
+*.linkfilelist
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Index
+*.xcscmblueprint
+*.xccheckout
+*.xcresult
+*.xcarchive
+
+# SwiftPM
+.build/
+.swiftpm/xcode/package.xcworkspace/
+.swiftpm/xcode/package.pbxproj
+
+# CocoaPods
+Pods/
+Podfile.lock
+
+# Carthage
+Carthage/Build/
+
+# SPM binary artifacts
+.artifacts/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Xcode Server
+sourcecontrol/
+*.xccoverage
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# User-specific
+*.moved-aside
+*.swp
+*.lock
+*.DS_Store
+
+# Others
+*.orig
+*.mode1v3
+*.mode2v3
+*.pbxuser
+
+# Archives
+*.xcarchive
+
+# Environment
+.env

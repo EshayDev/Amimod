@@ -179,14 +179,22 @@ SOFTWARE.
 ## Credits
 
 **Development:**
-- [eD! / TEAM EDiSO](https://github.com/EshayDev/)
+- [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
 
 **Music:**
-- [HOME](https://home96.bandcamp.com/) ([used under permission](https://x.com/RNDYGFFE/status/1595515631020957703))
+
+- [Andromeda](https://demozoo.org/sceners/187/)
+- [bboll](https://modarchive.org/module.php?134772)
+- [Dubmood](https://demozoo.org/sceners/520/)
+- [Dualtrax](https://demozoo.org/sceners/5763/)
+- [Quazar](https://demozoo.org/sceners/17375/)
+- [tj technoiZ](https://demozoo.org/sceners/17215/)
+- [wasp](https://demozoo.org/sceners/11697/)
+- [Zaiko](https://demozoo.org/sceners/38408/)
 
 **Testing:**
-- [eD! / TEAM EDiSO](https://github.com/EshayDev/)
+- [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
 - [Sneethan](https://github.com/Sneethan/)
 - [BruhgDev](https://github.com/BruhgDev/)
