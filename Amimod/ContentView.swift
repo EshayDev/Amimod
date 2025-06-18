@@ -551,7 +551,7 @@ struct ContentView: View {
         do {
             let contents = try fileManager.contentsOfDirectory(
                 at: directoryURL,
-                includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey],
+                includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey, URLResourceKey.isSymbolicLinkKey],
                 options: []
             )
 
@@ -576,6 +576,12 @@ struct ContentView: View {
                                 )
                             }
                         } else {
+                            // Check if this is a symbolic link and skip it to avoid duplicates
+                            let resourceValues = try url.resourceValues(forKeys: [.isSymbolicLinkKey])
+                            if let isSymbolicLink = resourceValues.isSymbolicLink, isSymbolicLink {
+                                continue // Skip symbolic links to avoid duplicate entries
+                            }
+                            
                             if isExecutableFile(url) {
                                 let formattedName = "\(rootFolder) \(url.lastPathComponent)"
                                 let executable = Executable(
