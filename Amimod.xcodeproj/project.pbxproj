@@ -42,13 +42,13 @@
 		83C7F7E42E0258D300584930 /* 05.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 05.m4a; sourceTree = "<group>"; };
 		83C7F7E52E0258D300584930 /* 06.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 06.m4a; sourceTree = "<group>"; };
 		83C7F7E62E0258D300584930 /* 07.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 07.m4a; sourceTree = "<group>"; };
-		83DCD32A2B42D2740094C668 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Amimod.app; path = "/Users/chris/Documents/Xcode Projects/Amimod/build/Debug/Amimod.app"; sourceTree = "<absolute>"; };
 		83DCD32D2B42D2740094C668 /* AmimodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmimodApp.swift; sourceTree = "<group>"; };
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		83DCD3312B42D2750094C668 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		83DCD3362B42D2750094C668 /* Amimod.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Amimod.entitlements; sourceTree = "<group>"; };
 		83DCD3462B42D4820094C668 /* AudioManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		83DCD34B2B42D7DD0094C668 /* HexPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HexPatch.swift; sourceTree = "<group>"; };
+		83EB4F712E0381CC00D8BBD7 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Amimod.app; path = "/Users/chris/Documents/Xcode Projects/Amimod/build/Debug/Amimod.app"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -115,7 +115,7 @@
 			);
 			name = Amimod;
 			productName = Amimod;
-			productReference = 83DCD32A2B42D2740094C668 /* Amimod.app */;
+			productReference = 83EB4F712E0381CC00D8BBD7 /* Amimod.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -334,7 +334,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.3.1;
+				MARKETING_VERSION = 1.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -373,7 +373,7 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.3.1;
+				MARKETING_VERSION = 1.3.2;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
