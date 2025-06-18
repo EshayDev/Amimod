@@ -318,10 +318,8 @@ struct ContentView: View {
                         || (usingImportedPatches && importedPatches.isEmpty))
             }
         }
-        .frame(
-            minWidth: 500, idealWidth: 500, maxWidth: .infinity, minHeight: 400, idealHeight: 400,
-            maxHeight: .infinity
-        )
+        .frame(width: 500, height: 400)
+        .fixedSize()
         .onAppear {
             refreshExecutables()
         }
@@ -826,12 +824,12 @@ struct BenchmarkResultsView: View {
 
                             Text(withoutWildcards?.formattedDuration ?? "—")
                                 .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.blue)
+                                .foregroundColor(.pink)
                                 .frame(maxWidth: .infinity, alignment: .center)
 
                             Text(withWildcards?.formattedDuration ?? "—")
                                 .font(.system(.body, design: .monospaced))
-                                .foregroundColor(.orange)
+                                .foregroundColor(.purple)
                                 .frame(maxWidth: .infinity, alignment: .center)
                         }
                         .padding(.horizontal)
@@ -868,82 +866,106 @@ struct BenchmarkResultsView: View {
                         return 1.0
                     } else if range <= 50 {
                         return 5.0
-                    } else {
+                    } else if range <= 100 {
                         return 10.0
+                    } else if range <= 250 {
+                        return 25.0
+                    } else if range <= 500 {
+                        return 50.0
+                    } else if range <= 1000 {
+                        return 100.0
+                    } else if range <= 2500 {
+                        return 250.0
+                    } else if range <= 5000 {
+                        return 500.0
+                    } else {
+                        return 1000.0
                     }
                 }()
 
-                let gridStart = (minDuration / gridInterval).rounded(.down) * gridInterval
+                let gridStart: Double = 0
                 let gridEnd = (maxDuration / gridInterval).rounded(.up) * gridInterval
                 let gridCount = Int((gridEnd - gridStart) / gridInterval) + 1
 
+                let totalSpacing = CGFloat(results.count - 1) * 6
+                let availableWidth = width - totalSpacing
+                let barWidth = availableWidth / CGFloat(results.count)
+
                 VStack(alignment: .leading, spacing: 0) {
-                    ZStack(alignment: .bottomLeading) {
-                        VStack(spacing: 0) {
-                            ForEach(0..<gridCount, id: \.self) { i in
-                                let value = gridEnd - Double(i) * gridInterval
-                                HStack {
-                                    Text(
-                                        String(format: gridInterval < 1.0 ? "%.1f" : "%.0f", value)
-                                    )
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    .frame(width: 60, alignment: .trailing)
-                                    Rectangle()
-                                        .fill(Color.gray.opacity(0.2))
-                                        .frame(height: 1)
-                                }
-                                if i < gridCount - 1 {
-                                    Spacer()
+                    VStack(spacing: 8) {
+                        ZStack(alignment: .bottomLeading) {
+                            VStack(spacing: 0) {
+                                ForEach(0..<gridCount, id: \.self) { i in
+                                    let value = gridEnd - Double(i) * gridInterval
+                                    HStack {
+                                        Text(
+                                            String(
+                                                format: gridInterval < 1.0 ? "%.1f" : "%.0f", value)
+                                        )
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .frame(width: 60, alignment: .trailing)
+                                        Rectangle()
+                                            .fill(Color.gray.opacity(0.2))
+                                            .frame(height: 1)
+                                    }
+                                    if i < gridCount - 1 {
+                                        Spacer()
+                                    }
                                 }
                             }
+                            .frame(height: height)
+
+                            HStack(alignment: .bottom, spacing: 6) {
+                                ForEach(results) { result in
+                                    let barHeight = (result.duration / gridEnd) * height
+
+                                    VStack(spacing: 2) {
+                                        Text(result.formattedDuration)
+                                            .font(.caption2)
+                                            .foregroundColor(.primary)
+                                            .fontWeight(.medium)
+
+                                        Rectangle()
+                                            .fill(result.hasWildcards ? Color.purple : Color.pink)
+                                            .frame(width: barWidth, height: max(barHeight, 1))
+                                            .animation(.easeInOut(duration: 0.5), value: barHeight)
+                                    }
+                                    .frame(width: barWidth, alignment: .center)
+                                }
+                            }
+                            .padding(.leading, 70)
                         }
                         .frame(height: height)
 
-                        HStack(alignment: .bottom, spacing: 6) {
+                        HStack(spacing: 6) {
                             ForEach(results) { result in
-                                let barHeight =
-                                    ((result.duration - gridStart) / (gridEnd - gridStart)) * height
-                                let barWidth = max(width / CGFloat(results.count) - 6, 25)
-
-                                VStack(spacing: 2) {
-                                    Text(result.formattedDuration)
+                                VStack(spacing: 0) {
+                                    Text("\(result.patternSize)")
                                         .font(.caption2)
                                         .foregroundColor(.primary)
-                                        .fontWeight(.medium)
-
-                                    Rectangle()
-                                        .fill(result.hasWildcards ? Color.orange : Color.blue)
-                                        .frame(width: barWidth, height: max(barHeight, 1))
-                                        .animation(.easeInOut(duration: 0.5), value: barHeight)
-
-                                    VStack(spacing: 0) {
-                                        Text("\(result.patternSize)")
-                                            .font(.caption2)
-                                            .foregroundColor(.primary)
-                                        Text(result.hasWildcards ? "W" : "N")
-                                            .font(.caption2)
-                                            .foregroundColor(result.hasWildcards ? .orange : .blue)
-                                            .fontWeight(.semibold)
-                                    }
-                                    .frame(width: barWidth)
+                                    Text(result.hasWildcards ? "W" : "N")
+                                        .font(.caption2)
+                                        .foregroundColor(result.hasWildcards ? .purple : .pink)
+                                        .fontWeight(.semibold)
                                 }
+                                .frame(width: barWidth, alignment: .center)
                             }
                         }
-                        .padding(.leading, 70)
+                        .padding(.leading, 60)
                     }
 
                     HStack(spacing: 20) {
                         HStack(spacing: 4) {
                             Rectangle()
-                                .fill(Color.blue)
+                                .fill(Color.pink)
                                 .frame(width: 12, height: 12)
                             Text("No Wildcards")
                                 .font(.caption)
                         }
                         HStack(spacing: 4) {
                             Rectangle()
-                                .fill(Color.orange)
+                                .fill(Color.purple)
                                 .frame(width: 12, height: 12)
                             Text("With Wildcards")
                                 .font(.caption)
