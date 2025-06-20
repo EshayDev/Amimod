@@ -17,8 +17,10 @@ struct BenchmarkResult: Identifiable {
     var formattedDuration: String {
         if duration >= 1000 {
             return String(format: "%.1f s", duration / 1000)
-        } else {
+        } else if duration >= 1.0 {
             return String(format: "%.0f ms", duration)
+        } else {
+            return String(format: "%.0f µs", duration * 1000)
         }
     }
 
@@ -576,10 +578,9 @@ struct ContentView: View {
                                 )
                             }
                         } else {
-                            // Check if this is a symbolic link and skip it to avoid duplicates
                             let resourceValues = try url.resourceValues(forKeys: [.isSymbolicLinkKey])
                             if let isSymbolicLink = resourceValues.isSymbolicLink, isSymbolicLink {
-                                continue // Skip symbolic links to avoid duplicate entries
+                                continue
                             }
                             
                             if isExecutableFile(url) {

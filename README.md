@@ -4,7 +4,7 @@
 Amimod is a powerful, modern hex patching application designed specifically for macOS. Built with performance and ease of use in mind, it's the perfect tool for anyone who needs reliable binary patching capabilities.
 
 ![macOS 11.0+](https://img.shields.io/badge/macOS-11.0+-blue?style=flat-square&logo=apple)
-![Architecture](https://img.shields.io/badge/architecture-Intel%20%7C%20Apple%20Silicon-green?style=flat-square)
+![Architecture](https://img.shields.io/badge/architecture-Intel%20%7C%20Apple%20Silicon-red?style=flat-square)
 ![MIT License](https://img.shields.io/badge/license-MIT-yellow?style=flat-square)
 ![Downloads](https://img.shields.io/github/downloads/EshayDev/Amimod/total?style=flat-square)
 
