@@ -630,8 +630,11 @@ struct ContentView: View {
             let executableURL = URL(fileURLWithPath: selectedExecutablePath)
 
             do {
-                let fileData = try Data(contentsOf: executableURL)
-                let fileSizeInMB = Double(fileData.count) / (1024.0 * 1024.0)
+                let fileAttributes = try FileManager.default.attributesOfItem(atPath: executableURL.path)
+                guard let fileSize = fileAttributes[.size] as? UInt64 else {
+                    throw NSError(domain: "BenchmarkError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not determine file size"])
+                }
+                let fileSizeInMB = Double(fileSize) / (1024.0 * 1024.0)
                 let hexPatcher = HexPatch()
 
                 let tempURL = try createTempCopy(of: executableURL)
@@ -642,10 +645,9 @@ struct ContentView: View {
                         var durations: [Double] = []
 
                         for _ in 0..<numberOfRuns {
-                            try fileData.write(to: tempURL)
-
-                            let patternResult = getRandomHexPattern(
-                                from: fileData,
+                            let patternResult = try getRandomHexPatternFromFile(
+                                url: tempURL,
+                                fileSize: fileSize,
                                 length: patternLength,
                                 withWildcards: useWildcards
                             )
@@ -705,19 +707,25 @@ struct ContentView: View {
         }
     }
 
-    func getRandomHexPattern(from data: Data, length: Int, withWildcards: Bool = false) -> (
+    func getRandomHexPatternFromFile(url: URL, fileSize: UInt64, length: Int, withWildcards: Bool = false) throws -> (
         findHex: String, replaceHex: String
     )? {
-        guard data.count >= length else { return nil }
+        guard fileSize >= length else { return nil }
 
-        let startIndex = Int.random(in: 0...(data.count - length))
-        let endIndex = startIndex + length
-        let subdata = data.subdata(in: startIndex..<endIndex)
+        let maxOffset = Int(fileSize) - length
+        let randomOffset = Int.random(in: 0...maxOffset)
+
+        let fileHandle = try FileHandle(forReadingFrom: url)
+        defer { try? fileHandle.close() }
+        
+        try fileHandle.seek(toOffset: UInt64(randomOffset))
+        guard let data = try fileHandle.read(upToCount: length) else { return nil }
+        guard data.count == length else { return nil }
 
         var findHex = ""
         var replaceHex = ""
 
-        subdata.forEach { byte in
+        data.forEach { byte in
             findHex += String(format: "%02X ", byte)
             replaceHex += "00 "
         }

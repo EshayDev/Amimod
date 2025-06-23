@@ -6,7 +6,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     static let audioManager = AudioManager()
     @AppStorage("isMusicPaused") var isPaused: Bool = false
 
-    var audioPlayer: AVAudioPlayer?
+    private var audioPlayer: AVAudioPlayer?
     private var musicFiles: [String] = []
     private var shuffledPlaylist: [String] = []
     private var currentTrackIndex: Int = 0
@@ -14,12 +14,16 @@ class AudioManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     override init() {
         super.init()
         loadMusicFiles()
-        setupAudio()
+        loadCurrentTrack()
         if isPaused {
             audioPlayer?.pause()
         } else {
             audioPlayer?.play()
         }
+    }
+
+    deinit {
+        unloadCurrentTrack()
     }
 
     private func loadMusicFiles() {
@@ -41,7 +45,9 @@ class AudioManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
         currentTrackIndex = 0
     }
 
-    func setupAudio() {
+    private func loadCurrentTrack() {
+        unloadCurrentTrack()
+        
         guard !shuffledPlaylist.isEmpty else {
             return
         }
@@ -61,6 +67,14 @@ class AudioManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
             audioPlayer?.prepareToPlay()
         } catch {
             return
+        }
+    }
+
+    private func unloadCurrentTrack() {
+        audioPlayer?.stop()
+        audioPlayer?.delegate = nil
+        audioPlayer = nil
+        autoreleasepool {
         }
     }
 
@@ -88,7 +102,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
             shufflePlaylist()
         }
 
-        setupAudio()
+        loadCurrentTrack()
         if !isPaused {
             audioPlayer?.play()
         }
