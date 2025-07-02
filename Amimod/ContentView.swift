@@ -480,8 +480,16 @@ struct ContentView: View {
     private func isExecutableFile(_ url: URL) -> Bool {
         let path = url.path
         let fileManager = FileManager.default
+        let fileName = url.lastPathComponent
 
-        guard fileManager.isExecutableFile(atPath: path) else {
+        guard let attributes = try? fileManager.attributesOfItem(atPath: path) else {
+            return false
+        }
+
+        let permissions = attributes[.posixPermissions] as? UInt16 ?? 0
+        let hasExecutePermission = (permissions & 0o111) != 0
+
+        if !hasExecutePermission {
             return false
         }
 
@@ -500,8 +508,8 @@ struct ContentView: View {
             return false
         }
 
-        let fileName = url.lastPathComponent.lowercased()
-        if fileName.hasPrefix(".") || fileName.contains("readme") || fileName.contains("license") {
+        let fileNameLower = fileName.lowercased()
+        if fileNameLower.hasPrefix(".") || fileNameLower.contains("readme") || fileNameLower.contains("license") {
             return false
         }
 

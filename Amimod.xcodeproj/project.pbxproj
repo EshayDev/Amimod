@@ -48,7 +48,7 @@
 		83DCD3362B42D2750094C668 /* Amimod.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Amimod.entitlements; sourceTree = "<group>"; };
 		83DCD3462B42D4820094C668 /* AudioManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		83DCD34B2B42D7DD0094C668 /* HexPatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HexPatch.swift; sourceTree = "<group>"; };
-		83EB4F712E0381CC00D8BBD7 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Amimod.app; path = "/Users/chris/Documents/Xcode Projects/Amimod/build/Debug/Amimod.app"; sourceTree = "<absolute>"; };
+		83F7BDE42E157B370089A849 /* Amimod.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Amimod.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +81,7 @@
 			children = (
 				83DCD32C2B42D2740094C668 /* Amimod */,
 				83C7F7E72E0258D300584930 /* Music */,
+				83F7BDE42E157B370089A849 /* Amimod.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -115,7 +116,7 @@
 			);
 			name = Amimod;
 			productName = Amimod;
-			productReference = 83EB4F712E0381CC00D8BBD7 /* Amimod.app */;
+			productReference = 83F7BDE42E157B370089A849 /* Amimod.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -313,6 +314,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Amimod/Amimod.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -334,9 +336,10 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.3.2;
+				MARKETING_VERSION = 1.3.3;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -352,6 +355,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Amimod/Amimod.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -373,9 +377,10 @@
 					"$(PROJECT_DIR)",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 1.3.2;
+				MARKETING_VERSION = 1.3.3;
 				PRODUCT_BUNDLE_IDENTIFIER = team.ediso.Amimod;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "";
 				SWIFT_VERSION = 5.0;
