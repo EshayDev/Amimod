@@ -9,6 +9,95 @@ public struct HexPatchOperation: Identifiable {
 
 public class HexPatch {
     private let maxMatchesPerChunk = 1000
+    
+    private struct PatternAnalysis {
+        let hasWildcards: Bool
+        let patternBytes: [UInt8]?
+        let anchorPoints: [(index: Int, byte: UInt8)]
+        let searchBound: Int
+        let jumpDistances: (small: Int, medium: Int, large: Int)
+        let badCharTable: [Int]?
+    }
+    
+    private func analyzePattern(_ pattern: [UInt8?], dataLength: Int) -> PatternAnalysis {
+        let m = pattern.count
+        let hasWildcards = pattern.contains(where: { $0 == nil })
+        let patternBytes = hasWildcards ? nil : pattern.compactMap { $0 }
+        let searchBound = dataLength - m
+        
+        let jumpDistances = (
+            small: max(1, m / 2),
+            medium: max(1, m / 3), 
+            large: max(1, m / 4)
+        )
+        
+        var anchorPoints = [(index: Int, byte: UInt8)]()
+        
+        if hasWildcards {
+            if m <= 32 {
+                var firstAnchor: (index: Int, byte: UInt8)?
+                var lastAnchor: (index: Int, byte: UInt8)?
+                
+                for (index, byte) in pattern.enumerated() {
+                    if let nonWildcard = byte {
+                        if firstAnchor == nil {
+                            firstAnchor = (index, nonWildcard)
+                        }
+                        lastAnchor = (index, nonWildcard)
+                    }
+                }
+                
+                if let first = firstAnchor { anchorPoints.append(first) }
+                if let last = lastAnchor, last.index != firstAnchor?.index {
+                    anchorPoints.append(last)
+                }
+            } else if m <= 128 {
+                let step = max(1, m / 4)
+                for i in stride(from: 0, to: m, by: step) {
+                    if let byte = pattern[i] {
+                        anchorPoints.append((i, byte))
+                        if anchorPoints.count >= 4 { break }
+                    }
+                }
+            } else {
+                var byteFrequency = [UInt8: Int]()
+                for byte in pattern.compactMap({ $0 }) {
+                    byteFrequency[byte, default: 0] += 1
+                }
+                
+                var candidateAnchors = [(index: Int, byte: UInt8, frequency: Int)]()
+                for (index, byte) in pattern.enumerated() {
+                    if let nonWildcard = byte {
+                        candidateAnchors.append((index, nonWildcard, byteFrequency[nonWildcard] ?? 1))
+                    }
+                }
+                
+                candidateAnchors.sort { $0.frequency < $1.frequency }
+                
+                var selectedIndices = Set<Int>()
+                for candidate in candidateAnchors {
+                    if anchorPoints.count >= 8 { break }
+                    
+                    let tooClose = selectedIndices.contains { abs($0 - candidate.index) < max(1, m / 10) }
+                    if !tooClose {
+                        anchorPoints.append((candidate.index, candidate.byte))
+                        selectedIndices.insert(candidate.index)
+                    }
+                }
+            }
+        }
+        
+        let badCharTable = hasWildcards ? createBadCharTable(pattern: pattern) : nil
+        
+        return PatternAnalysis(
+            hasWildcards: hasWildcards,
+            patternBytes: patternBytes,
+            anchorPoints: anchorPoints,
+            searchBound: searchBound,
+            jumpDistances: jumpDistances,
+            badCharTable: badCharTable
+        )
+    }
 
     private func parseHexPattern(
         _ hex: String, isReplacement: Bool = false, originalPattern: [UInt8?]? = nil
@@ -224,40 +313,32 @@ public class HexPatch {
         let n = data.count
 
         guard m > 0, n >= m else { return [] }
+        
+        let analysis = analyzePattern(pattern, dataLength: n)
 
         if m <= 32 {
-            return simpleWildcardSearch(in: data, pattern: pattern, offset: offset)
+            return simpleWildcardSearch(in: data, pattern: pattern, analysis: analysis, offset: offset)
         } else if m <= 128 {
-            return mediumWildcardSearch(in: data, pattern: pattern, offset: offset)
+            return mediumWildcardSearch(in: data, pattern: pattern, analysis: analysis, offset: offset)
         } else {
-            return advancedWildcardSearch(in: data, pattern: pattern, offset: offset)
+            return advancedWildcardSearch(in: data, pattern: pattern, analysis: analysis, offset: offset)
         }
     }
 
-    private func simpleWildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64) -> [UInt64]
+    private func simpleWildcardSearch(in data: Data, pattern: [UInt8?], analysis: PatternAnalysis, offset: UInt64) -> [UInt64]
     {
         var matches = ContiguousArray<UInt64>()
         let m = pattern.count
-        let n = data.count
 
-        var firstAnchor: (index: Int, byte: UInt8)?
-        var lastAnchor: (index: Int, byte: UInt8)?
-
-        for (index, byte) in pattern.enumerated() {
-            if let nonWildcard = byte {
-                if firstAnchor == nil {
-                    firstAnchor = (index, nonWildcard)
-                }
-                lastAnchor = (index, nonWildcard)
-            }
-        }
-
-        guard let first = firstAnchor, let last = lastAnchor else { return [] }
+        guard analysis.anchorPoints.count >= 1 else { return [] }
+        
+        let first = analysis.anchorPoints[0]
+        let last = analysis.anchorPoints.count > 1 ? analysis.anchorPoints[1] : first
 
         return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             var shift = 0
-            let searchBound = n - m
+            let searchBound = analysis.searchBound
             let firstByte = first.byte
             let lastByte = last.byte
             let firstIndex = first.index
@@ -288,7 +369,7 @@ public class HexPatch {
 
                     if matched {
                         matches.append(offset + UInt64(shift))
-                        shift += max(1, m / 2)
+                        shift += analysis.jumpDistances.small
                     } else {
                         shift += 1
                     }
@@ -301,46 +382,23 @@ public class HexPatch {
         }
     }
 
-    private func mediumWildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64) -> [UInt64]
+    private func mediumWildcardSearch(in data: Data, pattern: [UInt8?], analysis: PatternAnalysis, offset: UInt64) -> [UInt64]
     {
         var matches = ContiguousArray<UInt64>()
         let m = pattern.count
-        let n = data.count
 
-        var anchorPoints = [(index: Int, byte: UInt8)]()
-        let step = max(1, m / 4)
-
-        for i in stride(from: 0, to: m, by: step) {
-            if let byte = pattern[i] {
-                anchorPoints.append((i, byte))
-                if anchorPoints.count >= 4 { break }
-            }
-        }
-
-        if anchorPoints.count < 3 {
-            for i in stride(from: m - 1, through: 0, by: -1) {
-                if let byte = pattern[i] {
-                    let alreadyExists = anchorPoints.contains { $0.index == i }
-                    if !alreadyExists {
-                        anchorPoints.append((i, byte))
-                        break
-                    }
-                }
-            }
-        }
-
-        guard !anchorPoints.isEmpty else { return [] }
+        guard !analysis.anchorPoints.isEmpty else { return [] }
 
         return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             var shift = 0
-            let searchBound = n - m
+            let searchBound = analysis.searchBound
 
             while shift <= searchBound {
                 if matches.count >= maxMatchesPerChunk { break }
 
                 var allAnchorsMatch = true
-                for anchor in anchorPoints {
+                for anchor in analysis.anchorPoints {
                     if ptr[shift + anchor.index] != anchor.byte {
                         allAnchorsMatch = false
                         break
@@ -369,7 +427,7 @@ public class HexPatch {
 
                     if matched {
                         matches.append(offset + UInt64(shift))
-                        shift += max(1, m / 3)
+                        shift += analysis.jumpDistances.medium
                     } else {
                         shift += 1
                     }
@@ -382,56 +440,26 @@ public class HexPatch {
         }
     }
 
-    private func advancedWildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64)
+    private func advancedWildcardSearch(in data: Data, pattern: [UInt8?], analysis: PatternAnalysis, offset: UInt64)
         -> [UInt64]
     {
         var matches = ContiguousArray<UInt64>()
         let m = pattern.count
-        let n = data.count
 
-        var anchorPoints = [(index: Int, byte: UInt8)]()
-        var byteFrequency = [UInt8: Int]()
-
-        for byte in pattern.compactMap({ $0 }) {
-            byteFrequency[byte, default: 0] += 1
-        }
-
-        var candidateAnchors = [(index: Int, byte: UInt8, frequency: Int)]()
-        for (index, byte) in pattern.enumerated() {
-            if let nonWildcard = byte {
-                candidateAnchors.append((index, nonWildcard, byteFrequency[nonWildcard] ?? 1))
-            }
-        }
-
-        candidateAnchors.sort { $0.frequency < $1.frequency }
-
-        var selectedIndices = Set<Int>()
-        for candidate in candidateAnchors {
-            if anchorPoints.count >= 8 { break }
-
-            let tooClose = selectedIndices.contains { abs($0 - candidate.index) < max(1, m / 10) }
-            if !tooClose {
-                anchorPoints.append((candidate.index, candidate.byte))
-                selectedIndices.insert(candidate.index)
-            }
-        }
-
-        guard !anchorPoints.isEmpty else { return [] }
-
-        let badChar = createBadCharTable(pattern: pattern)
+        guard !analysis.anchorPoints.isEmpty, let badChar = analysis.badCharTable else { return [] }
 
         return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             var shift = 0
-            let searchBound = n - m
+            let searchBound = analysis.searchBound
 
             while shift <= searchBound {
                 if matches.count >= maxMatchesPerChunk { break }
 
                 var anchorsMatched = 0
-                let maxAnchorsToCheck = min(4, anchorPoints.count)
+                let maxAnchorsToCheck = min(4, analysis.anchorPoints.count)
                 for i in 0..<maxAnchorsToCheck {
-                    let anchor = anchorPoints[i]
+                    let anchor = analysis.anchorPoints[i]
                     if ptr[shift + anchor.index] == anchor.byte {
                         anchorsMatched += 1
                     } else {
@@ -445,8 +473,8 @@ public class HexPatch {
                 }
 
                 var allAnchorsMatch = true
-                for i in anchorsMatched..<anchorPoints.count {
-                    let anchor = anchorPoints[i]
+                for i in anchorsMatched..<analysis.anchorPoints.count {
+                    let anchor = analysis.anchorPoints[i]
                     if ptr[shift + anchor.index] != anchor.byte {
                         allAnchorsMatch = false
                         break
@@ -491,7 +519,7 @@ public class HexPatch {
 
                 if matched {
                     matches.append(offset + UInt64(shift))
-                    shift += max(1, m / 4)
+                    shift += analysis.jumpDistances.large
                 } else {
                     shift += max(1, min(badChar[Int(ptr[shift + m - 1])], m / 8))
                 }
