@@ -257,19 +257,33 @@ public class HexPatch {
         return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             var shift = 0
+            let searchBound = n - m
+            let firstByte = first.byte
+            let lastByte = last.byte
+            let firstIndex = first.index
+            let lastIndex = last.index
 
-            while shift <= (n - m) {
+            while shift <= searchBound {
                 if matches.count >= maxMatchesPerChunk { break }
 
-                if ptr[shift + first.index] == first.byte && ptr[shift + last.index] == last.byte {
+                if ptr[shift + firstIndex] == firstByte && ptr[shift + lastIndex] == lastByte {
                     var matched = true
-                    for i in 0..<m {
-                        if let patternByte = pattern[i] {
-                            if patternByte != ptr[shift + i] {
-                                matched = false
-                                break
-                            }
+                    var i = 0
+                    
+                    while i + 4 <= m {
+                        if let p0 = pattern[i], p0 != ptr[shift + i] { matched = false; break }
+                        if let p1 = pattern[i + 1], p1 != ptr[shift + i + 1] { matched = false; break }
+                        if let p2 = pattern[i + 2], p2 != ptr[shift + i + 2] { matched = false; break }
+                        if let p3 = pattern[i + 3], p3 != ptr[shift + i + 3] { matched = false; break }
+                        i += 4
+                    }
+                    
+                    while i < m && matched {
+                        if let patternByte = pattern[i], patternByte != ptr[shift + i] {
+                            matched = false
+                            break
                         }
+                        i += 1
                     }
 
                     if matched {
@@ -320,8 +334,9 @@ public class HexPatch {
         return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             var shift = 0
+            let searchBound = n - m
 
-            while shift <= (n - m) {
+            while shift <= searchBound {
                 if matches.count >= maxMatchesPerChunk { break }
 
                 var allAnchorsMatch = true
@@ -334,13 +349,22 @@ public class HexPatch {
 
                 if allAnchorsMatch {
                     var matched = true
-                    for i in 0..<m {
-                        if let patternByte = pattern[i] {
-                            if patternByte != ptr[shift + i] {
-                                matched = false
-                                break
-                            }
+                    var i = 0
+                    
+                    while i + 4 <= m && matched {
+                        if let p0 = pattern[i], p0 != ptr[shift + i] { matched = false; break }
+                        if let p1 = pattern[i + 1], p1 != ptr[shift + i + 1] { matched = false; break }
+                        if let p2 = pattern[i + 2], p2 != ptr[shift + i + 2] { matched = false; break }
+                        if let p3 = pattern[i + 3], p3 != ptr[shift + i + 3] { matched = false; break }
+                        i += 4
+                    }
+                    
+                    while i < m && matched {
+                        if let patternByte = pattern[i], patternByte != ptr[shift + i] {
+                            matched = false
+                            break
                         }
+                        i += 1
                     }
 
                     if matched {
@@ -383,7 +407,7 @@ public class HexPatch {
 
         var selectedIndices = Set<Int>()
         for candidate in candidateAnchors {
-            if anchorPoints.count >= 12 { break }
+            if anchorPoints.count >= 8 { break }
 
             let tooClose = selectedIndices.contains { abs($0 - candidate.index) < max(1, m / 10) }
             if !tooClose {
@@ -399,12 +423,15 @@ public class HexPatch {
         return data.withUnsafeBytes { buffer -> [UInt64] in
             let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
             var shift = 0
+            let searchBound = n - m
 
-            while shift <= (n - m) {
+            while shift <= searchBound {
                 if matches.count >= maxMatchesPerChunk { break }
 
                 var anchorsMatched = 0
-                for anchor in anchorPoints.prefix(4) {
+                let maxAnchorsToCheck = min(4, anchorPoints.count)
+                for i in 0..<maxAnchorsToCheck {
+                    let anchor = anchorPoints[i]
                     if ptr[shift + anchor.index] == anchor.byte {
                         anchorsMatched += 1
                     } else {
@@ -412,13 +439,14 @@ public class HexPatch {
                     }
                 }
 
-                if anchorsMatched < min(4, anchorPoints.count) {
+                if anchorsMatched < maxAnchorsToCheck {
                     shift += 1
                     continue
                 }
 
                 var allAnchorsMatch = true
-                for anchor in anchorPoints.dropFirst(anchorsMatched) {
+                for i in anchorsMatched..<anchorPoints.count {
+                    let anchor = anchorPoints[i]
                     if ptr[shift + anchor.index] != anchor.byte {
                         allAnchorsMatch = false
                         break
@@ -433,29 +461,30 @@ public class HexPatch {
                 var matched = true
                 var i = 0
 
-                while i + 8 <= m && matched {
-                    var allMatch = true
-                    for j in 0..<8 {
-                        if let patternByte = pattern[i + j] {
-                            if patternByte != ptr[shift + i + j] {
-                                allMatch = false
-                                break
-                            }
-                        }
-                    }
-                    if !allMatch {
-                        matched = false
-                        break
-                    }
-                    i += 8
-                }
-
-                while i < m && matched {
-                    if let patternByte = pattern[i] {
-                        if patternByte != ptr[shift + i] {
+                while i + 16 <= m && matched {
+                    for j in 0..<16 {
+                        if let patternByte = pattern[i + j], patternByte != ptr[shift + i + j] {
                             matched = false
                             break
                         }
+                    }
+                    if matched { i += 16 }
+                }
+
+                while i + 8 <= m && matched {
+                    for j in 0..<8 {
+                        if let patternByte = pattern[i + j], patternByte != ptr[shift + i + j] {
+                            matched = false
+                            break
+                        }
+                    }
+                    if matched { i += 8 }
+                }
+
+                while i < m && matched {
+                    if let patternByte = pattern[i], patternByte != ptr[shift + i] {
+                        matched = false
+                        break
                     }
                     i += 1
                 }
