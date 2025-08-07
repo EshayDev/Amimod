@@ -16,9 +16,9 @@ struct BenchmarkResult: Identifiable {
 
     var formattedDuration: String {
         if duration >= 1000 {
-            return String(format: "%.1f s", duration / 1000)
+            return String(format: "%.2f s", duration / 1000)
         } else if duration >= 1.0 {
-            return String(format: "%.0f ms", duration)
+            return String(format: "%.2f ms", duration)
         } else {
             return String(format: "%.0f µs", duration * 1000)
         }
@@ -628,7 +628,7 @@ struct ContentView: View {
 
         let patternLengths = [8, 16, 32, 64, 128, 256]
         let wildcardTests = [false, true]
-        let numberOfRuns = 3
+        let numberOfRuns = 20
 
         DispatchQueue.global(qos: .userInitiated).async {
             var results: [BenchmarkResult] = []
@@ -690,8 +690,10 @@ struct ContentView: View {
                         }
 
                         if !durations.isEmpty {
-                            let medianDuration = durations.sorted()[durations.count / 2]
-                            let durationInMs = medianDuration * 1000
+                            let filteredDurations = filterOutliersWithMAD(durations)
+                            let averageDuration =
+                                filteredDurations.reduce(0, +) / Double(filteredDurations.count)
+                            let durationInMs = averageDuration * 1000
 
                             let result = BenchmarkResult(
                                 patternSize: patternLength,
@@ -771,6 +773,42 @@ struct ContentView: View {
 
     private func refreshExecutables() {
         executables = listExecutables(in: filePath)
+    }
+
+    private func filterOutliersWithMAD(_ values: [Double]) -> [Double] {
+        guard values.count >= 3 else { return values }
+
+        let sortedValues = values.sorted()
+
+        let median: Double
+        let count = sortedValues.count
+        if count % 2 == 0 {
+            median = (sortedValues[count / 2 - 1] + sortedValues[count / 2]) / 2.0
+        } else {
+            median = sortedValues[count / 2]
+        }
+
+        let absoluteDeviations = sortedValues.map { abs($0 - median) }
+        let sortedDeviations = absoluteDeviations.sorted()
+
+        let mad: Double
+        let devCount = sortedDeviations.count
+        if devCount % 2 == 0 {
+            mad = (sortedDeviations[devCount / 2 - 1] + sortedDeviations[devCount / 2]) / 2.0
+        } else {
+            mad = sortedDeviations[devCount / 2]
+        }
+
+        let threshold = 2.5 * mad
+
+        let filteredValues = sortedValues.filter { abs($0 - median) <= threshold }
+
+        if filteredValues.count < values.count / 2 {
+            let lenientThreshold = 3.5 * mad
+            return sortedValues.filter { abs($0 - median) <= lenientThreshold }
+        }
+
+        return filteredValues
     }
 
     struct ImportSheetView: View {
