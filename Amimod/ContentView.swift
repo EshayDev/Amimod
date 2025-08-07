@@ -509,7 +509,9 @@ struct ContentView: View {
         }
 
         let fileNameLower = fileName.lowercased()
-        if fileNameLower.hasPrefix(".") || fileNameLower.contains("readme") || fileNameLower.contains("license") {
+        if fileNameLower.hasPrefix(".") || fileNameLower.contains("readme")
+            || fileNameLower.contains("license")
+        {
             return false
         }
 
@@ -561,7 +563,9 @@ struct ContentView: View {
         do {
             let contents = try fileManager.contentsOfDirectory(
                 at: directoryURL,
-                includingPropertiesForKeys: [URLResourceKey.typeIdentifierKey, URLResourceKey.isSymbolicLinkKey],
+                includingPropertiesForKeys: [
+                    URLResourceKey.typeIdentifierKey, URLResourceKey.isSymbolicLinkKey,
+                ],
                 options: []
             )
 
@@ -586,11 +590,13 @@ struct ContentView: View {
                                 )
                             }
                         } else {
-                            let resourceValues = try url.resourceValues(forKeys: [.isSymbolicLinkKey])
+                            let resourceValues = try url.resourceValues(forKeys: [
+                                .isSymbolicLinkKey
+                            ])
                             if let isSymbolicLink = resourceValues.isSymbolicLink, isSymbolicLink {
                                 continue
                             }
-                            
+
                             if isExecutableFile(url) {
                                 let formattedName = "\(rootFolder) \(url.lastPathComponent)"
                                 let executable = Executable(
@@ -622,7 +628,7 @@ struct ContentView: View {
 
         let patternLengths = [8, 16, 32, 64, 128, 256]
         let wildcardTests = [false, true]
-        let numberOfRuns = 5
+        let numberOfRuns = 3
 
         DispatchQueue.global(qos: .userInitiated).async {
             var results: [BenchmarkResult] = []
@@ -638,14 +644,20 @@ struct ContentView: View {
             let executableURL = URL(fileURLWithPath: selectedExecutablePath)
 
             do {
-                let fileAttributes = try FileManager.default.attributesOfItem(atPath: executableURL.path)
+                let fileAttributes = try FileManager.default.attributesOfItem(
+                    atPath: executableURL.path)
                 guard let fileSize = fileAttributes[.size] as? UInt64 else {
-                    throw NSError(domain: "BenchmarkError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not determine file size"])
+                    throw NSError(
+                        domain: "BenchmarkError", code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "Could not determine file size"])
                 }
                 let fileSizeInMB = Double(fileSize) / (1024.0 * 1024.0)
                 let hexPatcher = HexPatch()
 
-                let tempURL = try createTempCopy(of: executableURL)
+                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(
+                    "benchmark_\(UUID().uuidString).tmp"
+                )
+                try FileManager.default.copyItem(at: executableURL, to: tempURL)
                 defer { try? FileManager.default.removeItem(at: tempURL) }
 
                 for patternLength in patternLengths {
@@ -653,17 +665,14 @@ struct ContentView: View {
                         var durations: [Double] = []
 
                         for _ in 0..<numberOfRuns {
-                            let patternResult = try getRandomHexPatternFromFile(
-                                url: tempURL,
-                                fileSize: fileSize,
-                                length: patternLength,
-                                withWildcards: useWildcards
-                            )
-
-                            guard let (findHex, replaceHex) = patternResult else {
-                                print(
-                                    "Skipping test: \(patternLength) bytes, wildcards \(useWildcards) - not enough data."
+                            guard
+                                let (findHex, replaceHex) = try? getRandomHexPatternFromFile(
+                                    url: tempURL,
+                                    fileSize: fileSize,
+                                    length: patternLength,
+                                    withWildcards: useWildcards
                                 )
+                            else {
                                 continue
                             }
 
@@ -671,9 +680,7 @@ struct ContentView: View {
 
                             let startTime = DispatchTime.now()
                             try hexPatcher.findAndReplaceHexStrings(
-                                in: tempURL.path,
-                                patches: [patch]
-                            )
+                                in: tempURL.path, patches: [patch])
                             let endTime = DispatchTime.now()
 
                             let durationNanoseconds =
@@ -683,9 +690,9 @@ struct ContentView: View {
                         }
 
                         if !durations.isEmpty {
-                            let averageDuration = durations.reduce(0, +) / Double(durations.count)
+                            let medianDuration = durations.sorted()[durations.count / 2]
+                            let durationInMs = medianDuration * 1000
 
-                            let durationInMs = averageDuration * 1000
                             let result = BenchmarkResult(
                                 patternSize: patternLength,
                                 hasWildcards: useWildcards,
@@ -696,6 +703,7 @@ struct ContentView: View {
                         }
                     }
                 }
+
             } catch {
                 DispatchQueue.main.async {
                     isBenchmarking = false
@@ -715,7 +723,9 @@ struct ContentView: View {
         }
     }
 
-    func getRandomHexPatternFromFile(url: URL, fileSize: UInt64, length: Int, withWildcards: Bool = false) throws -> (
+    func getRandomHexPatternFromFile(
+        url: URL, fileSize: UInt64, length: Int, withWildcards: Bool = false
+    ) throws -> (
         findHex: String, replaceHex: String
     )? {
         guard fileSize >= length else { return nil }
@@ -725,7 +735,7 @@ struct ContentView: View {
 
         let fileHandle = try FileHandle(forReadingFrom: url)
         defer { try? fileHandle.close() }
-        
+
         try fileHandle.seek(toOffset: UInt64(randomOffset))
         guard let data = try fileHandle.read(upToCount: length) else { return nil }
         guard data.count == length else { return nil }

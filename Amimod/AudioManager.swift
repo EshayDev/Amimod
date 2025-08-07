@@ -47,7 +47,7 @@ class AudioManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
 
     private func loadCurrentTrack() {
         unloadCurrentTrack()
-        
+
         guard !shuffledPlaylist.isEmpty else {
             return
         }
