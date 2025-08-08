@@ -1,5 +1,5 @@
+import Darwin
 import Foundation
-import simd
 
 public struct HexPatchOperation: Identifiable {
     public let id = UUID()
@@ -53,7 +53,6 @@ public class HexPatch {
     }
 
     private func standardSearch(in data: Data, pattern: [UInt8], offset: UInt64) -> [UInt64] {
-        var matches = ContiguousArray<UInt64>()
         let patternLength = pattern.count
         let dataLength = data.count
 
@@ -61,148 +60,54 @@ public class HexPatch {
             return []
         }
 
-        let badCharTable: [UInt16] = {
-            var table = [UInt16](repeating: UInt16(patternLength), count: 256)
-            for i in 0..<(patternLength - 1) {
-                table[Int(pattern[i])] = UInt16(patternLength - 1 - i)
+        let searchBound = dataLength - patternLength
+
+        var out: [UInt64] = []
+        data.withUnsafeBytes { (dataBuffer: UnsafeRawBufferPointer) in
+            let basePtr = dataBuffer.bindMemory(to: UInt8.self).baseAddress!
+            pattern.withUnsafeBufferPointer { (patBuffer: UnsafeBufferPointer<UInt8>) in
+                let patPtr = patBuffer.baseAddress!
+                let lastIndex = patternLength - 1
+                let lastByte = patPtr[lastIndex]
+                let secondLastByte: UInt8 = patternLength > 1 ? patPtr[lastIndex - 1] : 0
+
+                var scanPtr = basePtr.advanced(by: lastIndex)
+                let endPtr = basePtr.advanced(by: searchBound + lastIndex + 1)
+
+                var collectedMatches = ContiguousArray<UInt64>()
+                while scanPtr < endPtr {
+                    if collectedMatches.count >= maxMatchesPerChunk { break }
+
+                    let remainingCount: Int = scanPtr.distance(to: endPtr)
+                    guard
+                        let foundRaw = memchr(
+                            UnsafeRawPointer(scanPtr), Int32(lastByte), remainingCount)
+                    else {
+                        break
+                    }
+                    let found = foundRaw.assumingMemoryBound(to: UInt8.self)
+
+                    let candidateStart = found.advanced(by: -lastIndex)
+                    let startIndex = basePtr.distance(to: UnsafePointer(candidateStart))
+
+                    if patternLength == 1 {
+                        collectedMatches.append(offset + UInt64(startIndex))
+                    } else {
+                        let secondLastAddr = candidateStart.advanced(by: patternLength - 2)
+                        if secondLastAddr.pointee == secondLastByte {
+                            if memcmp(patPtr, UnsafePointer(candidateStart), patternLength) == 0 {
+                                collectedMatches.append(offset + UInt64(startIndex))
+                            }
+                        }
+                    }
+
+                    scanPtr = UnsafePointer(found).advanced(by: 1)
+                }
+
+                out = Array(collectedMatches)
             }
-            return table
-        }()
-
-        return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.bindMemory(to: UInt8.self).baseAddress!
-            var searchIndex = 0
-            let searchBound = dataLength - patternLength
-
-            let lastPatternByte = pattern[patternLength - 1]
-            let secondLastPatternByte = patternLength > 1 ? pattern[patternLength - 2] : 0
-
-            if patternLength >= 32 && dataLength >= 32 {
-                let simdPattern32 = SIMD32<UInt8>(pattern[0..<min(32, patternLength)])
-
-                while searchIndex <= searchBound {
-                    let lastDataByte = ptr[searchIndex + patternLength - 1]
-
-                    if lastDataByte == lastPatternByte
-                        && (patternLength == 1
-                            || ptr[searchIndex + patternLength - 2] == secondLastPatternByte)
-                    {
-
-                        var matched = true
-
-                        if searchIndex + 32 <= dataLength {
-                            let dataChunk32 = UnsafeRawPointer(ptr + searchIndex)
-                                .assumingMemoryBound(to: SIMD32<UInt8>.self).pointee
-                            if dataChunk32 != simdPattern32 {
-                                matched = false
-                            } else if patternLength > 32 {
-                                let remainingPattern = Array(pattern.dropFirst(32))
-                                matched =
-                                    memcmp(
-                                        remainingPattern, ptr + searchIndex + 32, patternLength - 32
-                                    ) == 0
-                            }
-                        } else {
-                            matched = memcmp(pattern, ptr + searchIndex, patternLength) == 0
-                        }
-
-                        if matched {
-                            matches.append(offset + UInt64(searchIndex))
-                            if matches.count >= maxMatchesPerChunk { break }
-                            searchIndex += patternLength
-                            continue
-                        }
-                    }
-
-                    searchIndex += Int(badCharTable[Int(lastDataByte)])
-                }
-            } else if patternLength >= 16 && dataLength >= 16 {
-                let simdPattern16 = SIMD16<UInt8>(pattern[0..<min(16, patternLength)])
-
-                while searchIndex <= searchBound {
-                    let lastDataByte = ptr[searchIndex + patternLength - 1]
-
-                    if lastDataByte == lastPatternByte
-                        && (patternLength == 1
-                            || ptr[searchIndex + patternLength - 2] == secondLastPatternByte)
-                    {
-
-                        var matched = true
-
-                        if searchIndex + 16 <= dataLength {
-                            let dataChunk16 = UnsafeRawPointer(ptr + searchIndex)
-                                .assumingMemoryBound(to: SIMD16<UInt8>.self).pointee
-                            if dataChunk16 != simdPattern16 {
-                                matched = false
-                            } else if patternLength > 16 {
-                                let remainingPattern = Array(pattern.dropFirst(16))
-                                matched =
-                                    memcmp(
-                                        remainingPattern, ptr + searchIndex + 16, patternLength - 16
-                                    ) == 0
-                            }
-                        } else {
-                            matched = memcmp(pattern, ptr + searchIndex, patternLength) == 0
-                        }
-
-                        if matched {
-                            matches.append(offset + UInt64(searchIndex))
-                            if matches.count >= maxMatchesPerChunk { break }
-                            searchIndex += patternLength
-                            continue
-                        }
-                    }
-
-                    searchIndex += Int(badCharTable[Int(lastDataByte)])
-                }
-            } else if patternLength >= 8 {
-                while searchIndex <= searchBound {
-                    let lastDataByte = ptr[searchIndex + patternLength - 1]
-
-                    if lastDataByte == lastPatternByte
-                        && (patternLength == 1
-                            || ptr[searchIndex + patternLength - 2] == secondLastPatternByte)
-                    {
-
-                        let matched = memcmp(pattern, ptr + searchIndex, patternLength) == 0
-
-                        if matched {
-                            matches.append(offset + UInt64(searchIndex))
-                            if matches.count >= maxMatchesPerChunk { break }
-                            searchIndex += patternLength
-                            continue
-                        }
-                    }
-
-                    searchIndex += Int(badCharTable[Int(lastDataByte)])
-                }
-            } else {
-                while searchIndex <= searchBound {
-                    let lastDataByte = ptr[searchIndex + patternLength - 1]
-
-                    if lastDataByte == lastPatternByte {
-                        var matched = true
-                        for i in 0..<(patternLength - 1) {
-                            if pattern[i] != ptr[searchIndex + i] {
-                                matched = false
-                                break
-                            }
-                        }
-
-                        if matched {
-                            matches.append(offset + UInt64(searchIndex))
-                            if matches.count >= maxMatchesPerChunk { break }
-                            searchIndex += patternLength
-                            continue
-                        }
-                    }
-
-                    searchIndex += Int(badCharTable[Int(lastDataByte)])
-                }
-            }
-
-            return Array(matches)
         }
+        return out
     }
 
     private func wildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64) -> [UInt64] {
@@ -224,39 +129,57 @@ public class HexPatch {
 
         guard let first = firstAnchor, let last = lastAnchor else { return [] }
 
+        let fixedChecks: [(index: Int, byte: UInt8)] = pattern.enumerated().compactMap { (i, b) in
+            guard let value = b else { return nil }
+            return (i, value)
+        }.filter { $0.index != first.index && $0.index != last.index }
+
         var matches = ContiguousArray<UInt64>()
+        matches.reserveCapacity(64)
         let searchBound = n - m
 
         return data.withUnsafeBytes { buffer -> [UInt64] in
-            let ptr = buffer.baseAddress!.assumingMemoryBound(to: UInt8.self)
-            var shift = 0
+            let basePtr = buffer.bindMemory(to: UInt8.self).baseAddress!
+
             let firstByte = first.byte
             let lastByte = last.byte
             let firstIndex = first.index
             let lastIndex = last.index
 
-            while shift <= searchBound {
+            var scanPtr = basePtr + lastIndex
+            let endPtr = basePtr + (searchBound + lastIndex + 1)
+
+            while scanPtr < endPtr {
                 if matches.count >= maxMatchesPerChunk { break }
 
-                if ptr[shift + firstIndex] == firstByte && ptr[shift + lastIndex] == lastByte {
+                let remainingCount: Int = endPtr - scanPtr
+                guard
+                    let foundRaw = memchr(
+                        UnsafeRawPointer(scanPtr), Int32(lastByte), remainingCount)
+                else {
+                    break
+                }
+                let foundMutable = foundRaw.assumingMemoryBound(to: UInt8.self)
+                let foundConst = UnsafePointer<UInt8>(foundMutable)
+
+                let candidateShift = (foundConst - basePtr) - lastIndex
+
+                if basePtr[candidateShift + firstIndex] == firstByte {
                     var matched = true
 
-                    for i in 0..<m {
-                        if let patternByte = pattern[i], patternByte != ptr[shift + i] {
+                    for (i, b) in fixedChecks {
+                        if basePtr[candidateShift + i] != b {
                             matched = false
                             break
                         }
                     }
 
                     if matched {
-                        matches.append(offset + UInt64(shift))
-                        shift += max(1, m / 4)
-                    } else {
-                        shift += 1
+                        matches.append(offset + UInt64(candidateShift))
                     }
-                } else {
-                    shift += 1
                 }
+
+                scanPtr = foundConst + 1
             }
 
             return Array(matches)
