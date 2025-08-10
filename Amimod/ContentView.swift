@@ -958,38 +958,16 @@ struct BenchmarkResultsView: View {
 
             GeometryReader { geometry in
                 let maxDuration = results.map { $0.duration }.max() ?? 100
-                let minDuration = results.map { $0.duration }.min() ?? 0
-                let range = maxDuration - minDuration
                 let width = geometry.size.width - 80
                 let height = geometry.size.height - 80
 
-                let gridInterval: Double = {
-                    if range <= 6 {
-                        return 0.5
-                    } else if range <= 15 {
-                        return 1.0
-                    } else if range <= 50 {
-                        return 5.0
-                    } else if range <= 100 {
-                        return 10.0
-                    } else if range <= 250 {
-                        return 25.0
-                    } else if range <= 500 {
-                        return 50.0
-                    } else if range <= 1000 {
-                        return 100.0
-                    } else if range <= 2500 {
-                        return 250.0
-                    } else if range <= 5000 {
-                        return 500.0
-                    } else {
-                        return 1000.0
-                    }
-                }()
-
-                let gridStart: Double = 0
-                let gridEnd = (maxDuration / gridInterval).rounded(.up) * gridInterval
-                let gridCount = Int((gridEnd - gridStart) / gridInterval) + 1
+                let maxTicks = 8
+                let domainMin = 0.0
+                let step = niceTickStep(
+                    minValue: domainMin, maxValue: maxDuration, maxTicks: maxTicks)
+                let gridStart = 0.0
+                let gridEnd = ceil(maxDuration / step) * step
+                let gridCount = max(2, Int(round((gridEnd - gridStart) / step)) + 1)
 
                 let totalSpacing = CGFloat(results.count - 1) * 6
                 let availableWidth = width - totalSpacing
@@ -1000,15 +978,12 @@ struct BenchmarkResultsView: View {
                         ZStack(alignment: .bottomLeading) {
                             VStack(spacing: 0) {
                                 ForEach(0..<gridCount, id: \.self) { i in
-                                    let value = gridEnd - Double(i) * gridInterval
+                                    let value = gridEnd - Double(i) * step
                                     HStack {
-                                        Text(
-                                            String(
-                                                format: gridInterval < 1.0 ? "%.1f" : "%.0f", value)
-                                        )
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .frame(width: 60, alignment: .trailing)
+                                        Text(formatTick(value: value, step: step))
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                            .frame(width: 60, alignment: .trailing)
                                         Rectangle()
                                             .fill(Color.gray.opacity(0.2))
                                             .frame(height: 1)
@@ -1022,7 +997,10 @@ struct BenchmarkResultsView: View {
 
                             HStack(alignment: .bottom, spacing: 6) {
                                 ForEach(results) { result in
-                                    let barHeight = (result.duration / gridEnd) * height
+                                    let normalized =
+                                        (result.duration - gridStart)
+                                        / max(0.0001, (gridEnd - gridStart))
+                                    let barHeight = max(0, min(1, normalized)) * height
 
                                     VStack(spacing: 2) {
                                         Text(result.formattedDuration)
@@ -1083,5 +1061,40 @@ struct BenchmarkResultsView: View {
             .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+extension BenchmarkResultsView {
+    private func niceTickStep(minValue: Double, maxValue: Double, maxTicks: Int) -> Double {
+        let range = max(maxValue - minValue, 1e-6)
+        let approximate = range / Double(max(maxTicks - 1, 1))
+        let exponent = floor(log10(approximate))
+        let magnitude = pow(10.0, exponent)
+        let residual = approximate / magnitude
+
+        let niceResidual: Double
+        if residual >= 5 {
+            niceResidual = 10
+        } else if residual >= 2 {
+            niceResidual = 5
+        } else if residual >= 1 {
+            niceResidual = 2
+        } else {
+            niceResidual = 1
+        }
+
+        return niceResidual * magnitude
+    }
+
+    private func formatTick(value: Double, step: Double) -> String {
+        if step >= 1 {
+            return String(format: "%.0f", value)
+        } else if step >= 0.1 {
+            return String(format: "%.1f", value)
+        } else if step >= 0.01 {
+            return String(format: "%.2f", value)
+        } else {
+            return String(format: "%.3f", value)
+        }
     }
 }
