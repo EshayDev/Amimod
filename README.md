@@ -12,8 +12,8 @@ Amimod is a powerful, modern hex patching application designed specifically for 
 
 ### Bundle Support & Discovery
 - Support for apps, VSTs, AudioUnits, frameworks, system extensions, and more
-- Intelligent executable discovery that recursively scans MacOS, Frameworks, and LaunchServices directories
-- Clean dropdown interface showing all available executables
+- Recursively scans `Contents/MacOS`, `Contents/Frameworks`, and `Contents/Library/LaunchServices`
+- Dropdown interface listing all discovered Mach-O executables
 
 ### Advanced Patching Capabilities
 - Multi-pattern patching - apply multiple hex patches in sequence
@@ -22,16 +22,16 @@ Amimod is a powerful, modern hex patching application designed specifically for 
 - Multiple match handling with confirmation prompts (up to 50,000 matches per pattern)
 
 ### Performance & Reliability
-- SIMD-optimized Boyer-Moore-Horspool algorithm for lightning-fast searching
-- Multi-threading with parallel chunk processing
-- Can patch a 250MB binary in ~25ms while using max 50MB memory
-- Built-in benchmarking tools with visual results
-- Comprehensive error handling with detailed context
+- Parallel chunk processing across CPU cores
+- Efficient byte searching using libc primitives (memchr/memcmp) with anchored checks
+- Dynamic chunk sizing and overlap management to avoid missed matches
+- Built-in benchmarking UI with chart and table views
+- Clear error messages and input validation
 
-### User Experience
-- Real-time progress tracking with timing information
-- Intuitive interface designed for both beginners and experts
-- Extensive validation to prevent data corruption
+### Polished UX
+- Real-time status for patching/benchmarking
+- Toolbar actions for music toggle, import hex notes, and benchmarking
+- Optional background music (toggle via the speaker icon)
 
 ## Installation
 
@@ -56,9 +56,9 @@ cd Amimod
 ### Selecting a Bundle
 
 1. Launch Amimod
-2. Click **"Select Bundle"** to choose a target file
-3. Supported formats: `.app`, `.component`, `.audiounit`, `.vst`, `.vst3`, `.framework`, `.bundle`, `.kext`, `.appex`
-4. Select an executable from the dropdown list
+2. Click "Select Bundle" and choose a target bundle
+3. Supported: `.app`, `.component`, `.audiounit`, `.vst`, `.vst3`, `.framework`, `.bundle`, `.kext`, `.appex`
+4. Pick an executable from the dropdown
 
 ### Manual Hex Patching
 
@@ -122,22 +122,21 @@ to
 3. Click "Import" to load and validate patches
 4. Click "Patch Hex" to apply all patches
 
-## Benchmarking
+### Benchmarking
+- Toolbar → Speedometer → runs tests across pattern sizes (8–256 bytes) with/without wildcards
+- Results can be viewed as a table or chart
 
-The built-in benchmark tests patching performance across different scenarios:
+## Safety & Limitations
+- Patching is in-place. Always work on a copy and keep backups
+- Code signing is not handled by Amimod. Re-sign externally if needed
+- Replace and Find patterns must be the same length
+- Too many matches (> 50,000 per pattern) are rejected for safety
+- Executable discovery only scans the bundle locations listed above
 
-1. Click the Speedometer icon (⏱️) in the toolbar
-2. Tests pattern sizes from 8 to 256 bytes
-3. Tests with and without wildcards
-4. View results as charts or tables
-
-## Performance Features
-
-- **SIMD Instructions:** Uses 16-bit and 32-bit SIMD for faster searching
-- **Boyer-Moore-Horspool:** Optimized string searching algorithm
-- **Multi-threading:** Parallel processing across CPU cores
-- **Chunk Management:** Dynamic sizing based on file size
-- **Memory Efficiency:** Handles large files without excessive RAM usage
+## Troubleshooting
+- "Pattern not found": verify the pattern and byte length, and consider wildcards
+- "Invalid wildcard usage in replace pattern": only use `??` in Replace where Find used `??`
+- "No executables listed": ensure the selected bundle contains Mach-O binaries in scanned paths
 
 ## System Requirements
 
@@ -147,12 +146,6 @@ The built-in benchmark tests patching performance across different scenarios:
 | Architecture | Intel x86_64 or Apple Silicon |
 | Memory | 4GB RAM minimum |
 | Storage | 30MB free space |
-
-## Important Notes
-
-- Amimod focuses purely on hex patching - it doesn't handle codesigning
-- For codesigning after patching, consider using [Sentinel](https://itsalin.com/appInfo/?id=sentinel) or standard terminal commands
-- The tool is provided free of charge under MIT license
 
 ## Bug Reports & Suggestions
 
@@ -188,11 +181,10 @@ SOFTWARE.
 - [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
 
-**Graphics (App Icon & Logo):** 
+**Graphics (App Icon & Logo):**
 - [EshayDev](https://github.com/EshayDev/)
 
 **Music:**
-
 - [Andromeda](https://demozoo.org/sceners/187/)
 - [bboll](https://modarchive.org/module.php?134772)
 - [Dubmood](https://demozoo.org/sceners/520/)
