@@ -193,6 +193,8 @@ SOFTWARE.
 - [tj technoiZ](https://demozoo.org/sceners/17215/)
 - [wasp](https://demozoo.org/sceners/11697/)
 - [Zaiko](https://demozoo.org/sceners/38408/)
+- [Estrayk](https://demozoo.org/sceners/10035/)
+- [Evelred](https://demozoo.org/sceners/428/)
 
 **App Testing:**
 - [EshayDev](https://github.com/EshayDev/)

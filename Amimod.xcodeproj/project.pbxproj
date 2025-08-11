@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		83C086182E4964E100166539 /* 08.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C086172E4964E100166539 /* 08.m4a */; };
 		83C7F7E82E0258D300584930 /* 04.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E32E0258D300584930 /* 04.m4a */; };
 		83C7F7E92E0258D300584930 /* 05.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E42E0258D300584930 /* 05.m4a */; };
 		83C7F7EA2E0258D300584930 /* 01.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E02E0258D300584930 /* 01.m4a */; };
@@ -22,6 +23,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		83C086172E4964E100166539 /* 08.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 08.m4a; sourceTree = "<group>"; };
 		83C7F7E02E0258D300584930 /* 01.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 01.m4a; sourceTree = "<group>"; };
 		83C7F7E12E0258D300584930 /* 02.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 02.m4a; sourceTree = "<group>"; };
 		83C7F7E22E0258D300584930 /* 03.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 03.m4a; sourceTree = "<group>"; };
@@ -59,6 +61,7 @@
 				83C7F7E42E0258D300584930 /* 05.m4a */,
 				83C7F7E52E0258D300584930 /* 06.m4a */,
 				83C7F7E62E0258D300584930 /* 07.m4a */,
+				83C086172E4964E100166539 /* 08.m4a */,
 			);
 			path = Music;
 			sourceTree = "<group>";
@@ -151,6 +154,7 @@
 				83C7F7EC2E0258D300584930 /* 06.m4a in Resources */,
 				83C7F7ED2E0258D300584930 /* 02.m4a in Resources */,
 				83C7F7EE2E0258D300584930 /* 03.m4a in Resources */,
+				83C086182E4964E100166539 /* 08.m4a in Resources */,
 				83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
