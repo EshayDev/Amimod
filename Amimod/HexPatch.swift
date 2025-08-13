@@ -11,13 +11,15 @@ public class HexPatch {
     private let maxMatchesPerChunk = 1000
 
     private func parseHexPattern(
-        _ hex: String, isReplacement: Bool = false, originalPattern: [UInt8?]? = nil
+        _ hex: String, isReplacement: Bool = false,
+        originalPattern: [UInt8?]? = nil
     ) throws -> [UInt8?] {
         let cleanHex = hex.replacingOccurrences(of: " ", with: "").uppercased()
 
         guard !cleanHex.isEmpty else { throw HexPatchError.emptyHexStrings }
         guard cleanHex.count % 2 == 0 else {
-            throw HexPatchError.invalidHexString(description: "Hex string must have even length")
+            throw HexPatchError.invalidHexString(
+                description: "Hex string must have even length")
         }
 
         var result: [UInt8?] = []
@@ -34,7 +36,8 @@ public class HexPatch {
                         pattern[result.count] == nil
                     else {
                         throw HexPatchError.invalidHexString(
-                            description: "Invalid wildcard usage in replace pattern")
+                            description:
+                                "Invalid wildcard usage in replace pattern")
                     }
                 }
                 result.append(nil)
@@ -52,7 +55,9 @@ public class HexPatch {
         return result
     }
 
-    private func standardSearch(in data: Data, pattern: [UInt8], offset: UInt64) -> [UInt64] {
+    private func standardSearch(in data: Data, pattern: [UInt8], offset: UInt64)
+        -> [UInt64]
+    {
         let patternLength = pattern.count
         let dataLength = data.count
 
@@ -65,11 +70,13 @@ public class HexPatch {
         var out: [UInt64] = []
         data.withUnsafeBytes { (dataBuffer: UnsafeRawBufferPointer) in
             let basePtr = dataBuffer.bindMemory(to: UInt8.self).baseAddress!
-            pattern.withUnsafeBufferPointer { (patBuffer: UnsafeBufferPointer<UInt8>) in
+            pattern.withUnsafeBufferPointer {
+                (patBuffer: UnsafeBufferPointer<UInt8>) in
                 let patPtr = patBuffer.baseAddress!
                 let lastIndex = patternLength - 1
                 let lastByte = patPtr[lastIndex]
-                let secondLastByte: UInt8 = patternLength > 1 ? patPtr[lastIndex - 1] : 0
+                let secondLastByte: UInt8 =
+                    patternLength > 1 ? patPtr[lastIndex - 1] : 0
 
                 var scanPtr = basePtr.advanced(by: lastIndex)
                 let endPtr = basePtr.advanced(by: searchBound + lastIndex + 1)
@@ -81,22 +88,29 @@ public class HexPatch {
                     let remainingCount: Int = scanPtr.distance(to: endPtr)
                     guard
                         let foundRaw = memchr(
-                            UnsafeRawPointer(scanPtr), Int32(lastByte), remainingCount)
+                            UnsafeRawPointer(scanPtr), Int32(lastByte),
+                            remainingCount)
                     else {
                         break
                     }
                     let found = foundRaw.assumingMemoryBound(to: UInt8.self)
 
                     let candidateStart = found.advanced(by: -lastIndex)
-                    let startIndex = basePtr.distance(to: UnsafePointer(candidateStart))
+                    let startIndex = basePtr.distance(
+                        to: UnsafePointer(candidateStart))
 
                     if patternLength == 1 {
                         collectedMatches.append(offset + UInt64(startIndex))
                     } else {
-                        let secondLastAddr = candidateStart.advanced(by: patternLength - 2)
+                        let secondLastAddr = candidateStart.advanced(
+                            by: patternLength - 2)
                         if secondLastAddr.pointee == secondLastByte {
-                            if memcmp(patPtr, UnsafePointer(candidateStart), patternLength) == 0 {
-                                collectedMatches.append(offset + UInt64(startIndex))
+                            if memcmp(
+                                patPtr, UnsafePointer(candidateStart),
+                                patternLength) == 0
+                            {
+                                collectedMatches.append(
+                                    offset + UInt64(startIndex))
                             }
                         }
                     }
@@ -110,7 +124,9 @@ public class HexPatch {
         return out
     }
 
-    private func wildcardSearch(in data: Data, pattern: [UInt8?], offset: UInt64) -> [UInt64] {
+    private func wildcardSearch(
+        in data: Data, pattern: [UInt8?], offset: UInt64
+    ) -> [UInt64] {
         let m = pattern.count
         let n = data.count
         guard m > 0, n >= m else { return [] }
@@ -129,10 +145,11 @@ public class HexPatch {
 
         guard let first = firstAnchor, let last = lastAnchor else { return [] }
 
-        let fixedChecks: [(index: Int, byte: UInt8)] = pattern.enumerated().compactMap { (i, b) in
-            guard let value = b else { return nil }
-            return (i, value)
-        }.filter { $0.index != first.index && $0.index != last.index }
+        let fixedChecks: [(index: Int, byte: UInt8)] = pattern.enumerated()
+            .compactMap { (i, b) in
+                guard let value = b else { return nil }
+                return (i, value)
+            }.filter { $0.index != first.index && $0.index != last.index }
 
         var matches = ContiguousArray<UInt64>()
         matches.reserveCapacity(64)
@@ -155,7 +172,8 @@ public class HexPatch {
                 let remainingCount: Int = endPtr - scanPtr
                 guard
                     let foundRaw = memchr(
-                        UnsafeRawPointer(scanPtr), Int32(lastByte), remainingCount)
+                        UnsafeRawPointer(scanPtr), Int32(lastByte),
+                        remainingCount)
                 else {
                     break
                 }
@@ -186,15 +204,19 @@ public class HexPatch {
         }
     }
 
-    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64] {
-        let fileSize = try FileManager.default.attributesOfItem(atPath: url.path)[.size] as! UInt64
+    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64]
+    {
+        let fileSize =
+            try FileManager.default.attributesOfItem(atPath: url.path)[.size]
+            as! UInt64
         let processorCount = ProcessInfo.processInfo.activeProcessorCount
 
         let patternLength = UInt64(pattern.count)
 
         let minChunkSize: UInt64 = 2 * 1024 * 1024
         let maxChunkSize: UInt64 = 16 * 1024 * 1024
-        let idealChunkSize = max(min(fileSize / UInt64(processorCount), maxChunkSize), minChunkSize)
+        let idealChunkSize = max(
+            min(fileSize / UInt64(processorCount), maxChunkSize), minChunkSize)
 
         let overlap = patternLength - 1
         let totalChunks = Int((fileSize + idealChunkSize - 1) / idealChunkSize)
@@ -214,7 +236,8 @@ public class HexPatch {
 
                     let baseLength = min(idealChunkSize, fileSize - chunkStart)
                     let overlapLength = isLastChunk ? 0 : overlap
-                    let totalLength = min(baseLength + overlapLength, fileSize - chunkStart)
+                    let totalLength = min(
+                        baseLength + overlapLength, fileSize - chunkStart)
 
                     do {
                         let chunkMatches = try self.searchChunk(
@@ -250,26 +273,33 @@ public class HexPatch {
         return matches.sorted()
     }
 
-    private func searchChunk(url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?]) throws
+    private func searchChunk(
+        url: URL, offset: UInt64, length: UInt64, pattern: [UInt8?]
+    ) throws
         -> [UInt64]
     {
         let handle = try FileHandle(forReadingFrom: url)
         defer { try? handle.close() }
 
         try handle.seek(toOffset: offset)
-        guard let data = try handle.read(upToCount: Int(length)) else { return [] }
+        guard let data = try handle.read(upToCount: Int(length)) else {
+            return []
+        }
 
         if !pattern.contains(where: { $0 == nil }) {
             let patternBytes = pattern.compactMap { $0 }
-            return standardSearch(in: data, pattern: patternBytes, offset: offset)
+            return standardSearch(
+                in: data, pattern: patternBytes, offset: offset)
         } else {
             return wildcardSearch(in: data, pattern: pattern, offset: offset)
         }
     }
 
-    private func applyPatches(to filePath: String, matches: [UInt64], replacement: [UInt8?]) throws
-    {
-        let fileHandle = try FileHandle(forUpdating: URL(fileURLWithPath: filePath))
+    private func applyPatches(
+        to filePath: String, matches: [UInt64], replacement: [UInt8?]
+    ) throws {
+        let fileHandle = try FileHandle(
+            forUpdating: URL(fileURLWithPath: filePath))
         defer { try? fileHandle.close() }
 
         for offset in matches.reversed() {
@@ -281,7 +311,10 @@ public class HexPatch {
                     bytesToWrite.append(byte)
                 } else {
                     try fileHandle.seek(toOffset: offset + UInt64(index))
-                    guard let originalByte = try fileHandle.read(upToCount: 1)?.first else {
+                    guard
+                        let originalByte = try fileHandle.read(upToCount: 1)?
+                            .first
+                    else {
                         throw HexPatchError.invalidInput(
                             description: "Failed to read original byte")
                     }
@@ -296,7 +329,9 @@ public class HexPatch {
         try fileHandle.synchronize()
     }
 
-    func findAndReplaceHexStrings(in filePath: String, patches: [HexPatchOperation]) throws {
+    func findAndReplaceHexStrings(
+        in filePath: String, patches: [HexPatchOperation]
+    ) throws {
         let dynamicHexPatch = HexPatch()
 
         for patch in patches {
@@ -308,7 +343,8 @@ public class HexPatch {
                 in: URL(fileURLWithPath: filePath), pattern: pattern)
 
             if matches.isEmpty {
-                throw HexPatchError.hexNotFound(description: "Pattern not found: \(patch.findHex)")
+                throw HexPatchError.hexNotFound(
+                    description: "Pattern not found: \(patch.findHex)")
             }
 
             try dynamicHexPatch.applyPatches(
@@ -316,7 +352,9 @@ public class HexPatch {
         }
     }
 
-    func countTotalMatches(in filePath: String, patches: [HexPatchOperation]) throws -> Int {
+    func countTotalMatches(in filePath: String, patches: [HexPatchOperation])
+        throws -> Int
+    {
         var totalMatches = 0
         let maxMatchesPerPatch = 50000
         let dynamicHexPatch = HexPatch()
@@ -328,7 +366,9 @@ public class HexPatch {
 
             guard pattern.count == replacement.count else {
                 throw HexPatchError.hexStringLengthMismatch(
-                    description: "Find and replace hex strings must have the same amount of bytes.")
+                    description:
+                        "Find and replace hex strings must have the same amount of bytes."
+                )
             }
 
             let matches = try dynamicHexPatch.findMatches(

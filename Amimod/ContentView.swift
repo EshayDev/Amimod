@@ -67,11 +67,13 @@ struct ContentView: View {
         selectedExecutable: Executable, patches: [HexPatchOperation]
     ) {
         guard !filePath.isEmpty else {
-            throw HexPatch.HexPatchError.invalidInput(description: "File path cannot be empty.")
+            throw HexPatch.HexPatchError.invalidInput(
+                description: "File path cannot be empty.")
         }
 
         guard FileManager.default.fileExists(atPath: filePath) else {
-            throw HexPatch.HexPatchError.invalidFilePath(description: "File does not exist.")
+            throw HexPatch.HexPatchError.invalidFilePath(
+                description: "File does not exist.")
         }
 
         guard let selected = selectedExecutable else {
@@ -85,7 +87,8 @@ struct ContentView: View {
 
         let patches: [HexPatchOperation] =
             usingImportedPatches
-            ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
+            ? importedPatches
+            : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
 
         return (selected, patches)
     }
@@ -109,48 +112,59 @@ struct ContentView: View {
                     applyPatch()
                 } else {
                     throw HexPatch.HexPatchError.hexNotFound(
-                        description: "No matches found for the provided hex pattern.")
+                        description:
+                            "No matches found for the provided hex pattern.")
                 }
             }
         } catch let hexPatchError as HexPatch.HexPatchError {
-            activeAlert = .message(title: "Error", message: hexPatchError.localizedDescription)
+            activeAlert = .message(
+                title: "Error", message: hexPatchError.localizedDescription)
         } catch {
-            activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
+            activeAlert = .message(
+                title: "Error", message: "An unexpected error occurred.")
         }
     }
 
     private func applyPatch() {
         let hexPatcher = HexPatch()
         guard let selected = selectedExecutable else {
-            activeAlert = .message(title: "Error", message: "No executable selected.")
+            activeAlert = .message(
+                title: "Error", message: "No executable selected.")
             return
         }
         let patches: [HexPatchOperation] =
             usingImportedPatches
-            ? importedPatches : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
+            ? importedPatches
+            : [HexPatchOperation(findHex: findHex, replaceHex: replaceHex)]
 
         isPatching = true
         let startTime = DispatchTime.now()
 
         DispatchQueue.global(qos: .userInitiated).async {
             do {
-                try hexPatcher.findAndReplaceHexStrings(in: selected.fullPath, patches: patches)
+                try hexPatcher.findAndReplaceHexStrings(
+                    in: selected.fullPath, patches: patches)
                 let endTime = DispatchTime.now()
-                let durationNanoseconds = endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
-                let durationSeconds = Double(durationNanoseconds) / 1_000_000_000
+                let durationNanoseconds =
+                    endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
+                let durationSeconds =
+                    Double(durationNanoseconds) / 1_000_000_000
 
                 let formattedDuration: String
                 if durationSeconds >= 1.0 {
                     formattedDuration = String(
-                        format: "(Operation completed in %.1f seconds)", durationSeconds)
+                        format: "(Operation completed in %.1f seconds)",
+                        durationSeconds)
                 } else if durationSeconds >= 0.001 {
                     let milliseconds = Double(durationNanoseconds) / 1_000_000
                     formattedDuration = String(
-                        format: "(Operation completed in %.0f ms)", milliseconds)
+                        format: "(Operation completed in %.0f ms)", milliseconds
+                    )
                 } else if durationSeconds >= 0.000001 {
                     let microseconds = Double(durationNanoseconds) / 1000
                     formattedDuration = String(
-                        format: "(Operation completed in %.0f µs)", microseconds)
+                        format: "(Operation completed in %.0f µs)", microseconds
+                    )
                 } else {
                     let nanoseconds = durationNanoseconds
                     formattedDuration = "(\(nanoseconds) ns)"
@@ -160,18 +174,23 @@ struct ContentView: View {
                 DispatchQueue.main.async {
                     activeAlert = .message(
                         title: "Success",
-                        message: "The binary was patched successfully.\n\(formattedDuration)")
+                        message:
+                            "The binary was patched successfully.\n\(formattedDuration)"
+                    )
                     isPatching = false
                 }
             } catch let hexPatchError as HexPatch.HexPatchError {
                 DispatchQueue.main.async {
                     activeAlert = .message(
-                        title: "Error", message: hexPatchError.localizedDescription)
+                        title: "Error",
+                        message: hexPatchError.localizedDescription)
                     isPatching = false
                 }
             } catch {
                 DispatchQueue.main.async {
-                    activeAlert = .message(title: "Error", message: "An unexpected error occurred.")
+                    activeAlert = .message(
+                        title: "Error", message: "An unexpected error occurred."
+                    )
                     isPatching = false
                 }
             }
@@ -199,7 +218,8 @@ struct ContentView: View {
                     dialog.canChooseFiles = true
                     dialog.canChooseDirectories = false
                     dialog.allowedFileTypes = [
-                        "app", "vst", "vst3", "component", "audiounit", "framework", "plugin",
+                        "app", "vst", "vst3", "component", "audiounit",
+                        "framework", "plugin",
                         "kext", "bundle", "appex",
                     ]
 
@@ -215,7 +235,9 @@ struct ContentView: View {
                 }
                 .padding([.leading, .trailing])
 
-                if !filePath.isEmpty, let selectedAppPath = URL(string: filePath) {
+                if !filePath.isEmpty,
+                    let selectedAppPath = URL(string: filePath)
+                {
                     let appIcon = NSWorkspace.shared.icon(forFile: filePath)
                     Image(nsImage: appIcon)
                         .resizable()
@@ -231,7 +253,8 @@ struct ContentView: View {
 
             Picker("", selection: $selectedExecutable) {
                 ForEach(executables, id: \.self) { executable in
-                    Text(executable.formattedName).tag(executable as Executable?)
+                    Text(executable.formattedName).tag(
+                        executable as Executable?)
                 }
 
                 if executables.isEmpty {
@@ -244,21 +267,25 @@ struct ContentView: View {
             .onChange(of: executables) { newExecutables in
                 if newExecutables.isEmpty && selectedExecutable != nil {
                     selectedExecutable = nil
-                } else if selectedExecutable == nil, let first = newExecutables.first {
+                } else if selectedExecutable == nil,
+                    let first = newExecutables.first
+                {
                     selectedExecutable = first
                 }
             }
 
             HStack {
                 TextField(
-                    usingImportedPatches ? "ⓘ Using imported hex notes." : "Find Hex",
+                    usingImportedPatches
+                        ? "ⓘ Using imported hex notes." : "Find Hex",
                     text: $findHex
                 )
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.leading)
                 .disabled(usingImportedPatches)
                 .onChange(of: findHex) { newValue in
-                    findHex = newValue.components(separatedBy: .newlines).joined()
+                    findHex = newValue.components(separatedBy: .newlines)
+                        .joined()
                 }
 
                 Button(action: {
@@ -274,14 +301,16 @@ struct ContentView: View {
 
             HStack {
                 TextField(
-                    usingImportedPatches ? "ⓘ Using imported hex notes." : "Replace Hex",
+                    usingImportedPatches
+                        ? "ⓘ Using imported hex notes." : "Replace Hex",
                     text: $replaceHex
                 )
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.leading)
                 .disabled(usingImportedPatches)
                 .onChange(of: replaceHex) { newValue in
-                    replaceHex = newValue.components(separatedBy: .newlines).joined()
+                    replaceHex = newValue.components(separatedBy: .newlines)
+                        .joined()
                 }
 
                 Button(action: {
@@ -335,11 +364,13 @@ struct ContentView: View {
                         showImportSheet = false
                     } catch let error as HexPatch.HexPatchError {
                         activeAlert = .message(
-                            title: "Import Error", message: error.localizedDescription)
+                            title: "Import Error",
+                            message: error.localizedDescription)
                     } catch {
                         activeAlert = .message(
                             title: "Import Error",
-                            message: "An unexpected error occurred during import.")
+                            message:
+                                "An unexpected error occurred during import.")
                     }
                 },
                 onCancel: {
@@ -375,7 +406,10 @@ struct ContentView: View {
                             systemName: usingImportedPatches
                                 ? "xmark.circle.fill" : "square.and.arrow.down")
                     }
-                    .help(usingImportedPatches ? "Clear Imported Hex Notes" : "Import Hex Notes")
+                    .help(
+                        usingImportedPatches
+                            ? "Clear Imported Hex Notes" : "Import Hex Notes"
+                    )
                     .disabled(filePath.isEmpty)
 
                     Button(action: {
@@ -414,47 +448,60 @@ struct ContentView: View {
         var patches: [HexPatchOperation] = []
 
         for (index, line) in lines.enumerated() {
-            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+            let trimmedLine = line.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).uppercased()
 
             if trimmedLine == "TO" {
                 guard index > 0, index < lines.count - 1 else {
                     throw HexPatch.HexPatchError.invalidInput(
                         description:
-                            "'TO' found without surrounding hex strings at line \(index + 1).")
+                            "'TO' found without surrounding hex strings at line \(index + 1)."
+                    )
                 }
 
-                let findHexLine = lines[index - 1].trimmingCharacters(in: .whitespacesAndNewlines)
-                    .uppercased()
+                let findHexLine = lines[index - 1].trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+                .uppercased()
                 let replaceHexLine = lines[index + 1].trimmingCharacters(
                     in: .whitespacesAndNewlines
                 ).uppercased()
 
                 guard !findHexLine.isEmpty else {
                     throw HexPatch.HexPatchError.invalidInput(
-                        description: "Empty find hex string found around 'TO' at line \(index + 1)."
+                        description:
+                            "Empty find hex string found around 'TO' at line \(index + 1)."
                     )
                 }
 
                 guard !replaceHexLine.isEmpty else {
                     throw HexPatch.HexPatchError.invalidInput(
                         description:
-                            "Empty replace hex string found around 'TO' at line \(index + 1).")
+                            "Empty replace hex string found around 'TO' at line \(index + 1)."
+                    )
                 }
 
-                let validFindHexCharacterSet = CharacterSet(charactersIn: "0123456789ABCDEF ?")
+                let validFindHexCharacterSet = CharacterSet(
+                    charactersIn: "0123456789ABCDEF ?")
                 guard
                     findHexLine.allSatisfy({
-                        validFindHexCharacterSet.contains(UnicodeScalar(String($0))!)
+                        validFindHexCharacterSet.contains(
+                            UnicodeScalar(String($0))!)
                     })
                 else {
                     throw HexPatch.HexPatchError.invalidHexString(
-                        description: "Invalid characters in find hex string at line \(index + 1).")
+                        description:
+                            "Invalid characters in find hex string at line \(index + 1)."
+                    )
                 }
 
-                let validReplaceHexCharacterSet = CharacterSet(charactersIn: "0123456789ABCDEF ?")
+                let validReplaceHexCharacterSet = CharacterSet(
+                    charactersIn: "0123456789ABCDEF ?")
                 guard
                     replaceHexLine.allSatisfy({
-                        validReplaceHexCharacterSet.contains(UnicodeScalar(String($0))!)
+                        validReplaceHexCharacterSet.contains(
+                            UnicodeScalar(String($0))!)
                     })
                 else {
                     throw HexPatch.HexPatchError.invalidHexString(
@@ -463,7 +510,8 @@ struct ContentView: View {
                     )
                 }
 
-                let patch = HexPatchOperation(findHex: findHexLine, replaceHex: replaceHexLine)
+                let patch = HexPatchOperation(
+                    findHex: findHexLine, replaceHex: replaceHexLine)
                 patches.append(patch)
             }
         }
@@ -482,7 +530,8 @@ struct ContentView: View {
         let fileManager = FileManager.default
         let fileName = url.lastPathComponent
 
-        guard let attributes = try? fileManager.attributesOfItem(atPath: path) else {
+        guard let attributes = try? fileManager.attributesOfItem(atPath: path)
+        else {
             return false
         }
 
@@ -520,7 +569,9 @@ struct ContentView: View {
 
             if let magicBytes = try? fileHandle.read(upToCount: 4) {
                 if magicBytes.count >= 4 {
-                    let magic = magicBytes.withUnsafeBytes { $0.load(as: UInt32.self) }
+                    let magic = magicBytes.withUnsafeBytes {
+                        $0.load(as: UInt32.self)
+                    }
                     let machOMagics: [UInt32] = [
                         0xfeed_face,
                         0xfeed_facf,
@@ -542,21 +593,26 @@ struct ContentView: View {
         var executables: [Executable] = []
 
         let macosURL = appBundleURL.appendingPathComponent("Contents/MacOS")
-        let frameworksURL = appBundleURL.appendingPathComponent("Contents/Frameworks")
+        let frameworksURL = appBundleURL.appendingPathComponent(
+            "Contents/Frameworks")
         let launchServicesURL = appBundleURL.appendingPathComponent(
             "Contents/Library/LaunchServices")
 
-        listExecutablesRecursively(in: macosURL, executables: &executables, rootFolder: "[MacOS]")
         listExecutablesRecursively(
-            in: frameworksURL, executables: &executables, rootFolder: "[Frameworks]")
+            in: macosURL, executables: &executables, rootFolder: "[MacOS]")
         listExecutablesRecursively(
-            in: launchServicesURL, executables: &executables, rootFolder: "[LaunchServices]")
+            in: frameworksURL, executables: &executables,
+            rootFolder: "[Frameworks]")
+        listExecutablesRecursively(
+            in: launchServicesURL, executables: &executables,
+            rootFolder: "[LaunchServices]")
 
         return executables
     }
 
     private func listExecutablesRecursively(
-        in directoryURL: URL, executables: inout [Executable], rootFolder: String
+        in directoryURL: URL, executables: inout [Executable],
+        rootFolder: String
     ) {
         let fileManager = FileManager.default
 
@@ -564,7 +620,8 @@ struct ContentView: View {
             let contents = try fileManager.contentsOfDirectory(
                 at: directoryURL,
                 includingPropertiesForKeys: [
-                    URLResourceKey.typeIdentifierKey, URLResourceKey.isSymbolicLinkKey,
+                    URLResourceKey.typeIdentifierKey,
+                    URLResourceKey.isSymbolicLinkKey,
                 ],
                 options: []
             )
@@ -572,10 +629,13 @@ struct ContentView: View {
             for url in contents {
                 do {
                     var isDirectory: ObjCBool = false
-                    if fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) {
+                    if fileManager.fileExists(
+                        atPath: url.path, isDirectory: &isDirectory)
+                    {
                         if isDirectory.boolValue {
                             let lastPathComponent = url.lastPathComponent
-                            if lastPathComponent != "Resources" && lastPathComponent != "__MACOSX"
+                            if lastPathComponent != "Resources"
+                                && lastPathComponent != "__MACOSX"
                                 && lastPathComponent != "Current"
                                 && lastPathComponent != "_CodeSignature"
                                 && lastPathComponent != "CodeResources"
@@ -590,15 +650,19 @@ struct ContentView: View {
                                 )
                             }
                         } else {
-                            let resourceValues = try url.resourceValues(forKeys: [
-                                .isSymbolicLinkKey
-                            ])
-                            if let isSymbolicLink = resourceValues.isSymbolicLink, isSymbolicLink {
+                            let resourceValues = try url.resourceValues(
+                                forKeys: [
+                                    .isSymbolicLinkKey
+                                ])
+                            if let isSymbolicLink = resourceValues
+                                .isSymbolicLink, isSymbolicLink
+                            {
                                 continue
                             }
 
                             if isExecutableFile(url) {
-                                let formattedName = "\(rootFolder) \(url.lastPathComponent)"
+                                let formattedName =
+                                    "\(rootFolder) \(url.lastPathComponent)"
                                 let executable = Executable(
                                     formattedName: formattedName,
                                     fullPath: url.path
@@ -610,7 +674,9 @@ struct ContentView: View {
                 }
             }
         } catch {
-            print("Error listing contents of \(directoryURL.path): \(error.localizedDescription)")
+            print(
+                "Error listing contents of \(directoryURL.path): \(error.localizedDescription)"
+            )
         }
     }
 
@@ -633,9 +699,11 @@ struct ContentView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             var results: [BenchmarkResult] = []
 
-            guard let selectedExecutablePath = selectedExecutable?.fullPath else {
+            guard let selectedExecutablePath = selectedExecutable?.fullPath
+            else {
                 DispatchQueue.main.async {
-                    activeAlert = .message(title: "Error", message: "No executable selected.")
+                    activeAlert = .message(
+                        title: "Error", message: "No executable selected.")
                     isBenchmarking = false
                 }
                 return
@@ -649,14 +717,18 @@ struct ContentView: View {
                 guard let fileSize = fileAttributes[.size] as? UInt64 else {
                     throw NSError(
                         domain: "BenchmarkError", code: 1,
-                        userInfo: [NSLocalizedDescriptionKey: "Could not determine file size"])
+                        userInfo: [
+                            NSLocalizedDescriptionKey:
+                                "Could not determine file size"
+                        ])
                 }
                 let fileSizeInMB = Double(fileSize) / (1024.0 * 1024.0)
                 let hexPatcher = HexPatch()
 
-                let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(
-                    "benchmark_\(UUID().uuidString).tmp"
-                )
+                let tempURL = FileManager.default.temporaryDirectory
+                    .appendingPathComponent(
+                        "benchmark_\(UUID().uuidString).tmp"
+                    )
                 try FileManager.default.copyItem(at: executableURL, to: tempURL)
                 defer { try? FileManager.default.removeItem(at: tempURL) }
 
@@ -666,17 +738,19 @@ struct ContentView: View {
 
                         for _ in 0..<numberOfRuns {
                             guard
-                                let (findHex, replaceHex) = try? getRandomHexPatternFromFile(
-                                    url: tempURL,
-                                    fileSize: fileSize,
-                                    length: patternLength,
-                                    withWildcards: useWildcards
-                                )
+                                let (findHex, replaceHex) =
+                                    try? getRandomHexPatternFromFile(
+                                        url: tempURL,
+                                        fileSize: fileSize,
+                                        length: patternLength,
+                                        withWildcards: useWildcards
+                                    )
                             else {
                                 continue
                             }
 
-                            let patch = HexPatchOperation(findHex: findHex, replaceHex: replaceHex)
+                            let patch = HexPatchOperation(
+                                findHex: findHex, replaceHex: replaceHex)
 
                             let startTime = DispatchTime.now()
                             try hexPatcher.findAndReplaceHexStrings(
@@ -684,15 +758,19 @@ struct ContentView: View {
                             let endTime = DispatchTime.now()
 
                             let durationNanoseconds =
-                                endTime.uptimeNanoseconds - startTime.uptimeNanoseconds
-                            let durationSeconds = Double(durationNanoseconds) / 1_000_000_000
+                                endTime.uptimeNanoseconds
+                                - startTime.uptimeNanoseconds
+                            let durationSeconds =
+                                Double(durationNanoseconds) / 1_000_000_000
                             durations.append(durationSeconds)
                         }
 
                         if !durations.isEmpty {
-                            let filteredDurations = filterOutliersWithMAD(durations)
+                            let filteredDurations = filterOutliersWithMAD(
+                                durations)
                             let averageDuration =
-                                filteredDurations.reduce(0, +) / Double(filteredDurations.count)
+                                filteredDurations.reduce(0, +)
+                                / Double(filteredDurations.count)
                             let durationInMs = averageDuration * 1000
 
                             let result = BenchmarkResult(
@@ -711,7 +789,8 @@ struct ContentView: View {
                     isBenchmarking = false
                     activeAlert = .message(
                         title: "Benchmark Error",
-                        message: "Error during benchmark: \(error.localizedDescription)"
+                        message:
+                            "Error during benchmark: \(error.localizedDescription)"
                     )
                 }
                 return
@@ -739,7 +818,9 @@ struct ContentView: View {
         defer { try? fileHandle.close() }
 
         try fileHandle.seek(toOffset: UInt64(randomOffset))
-        guard let data = try fileHandle.read(upToCount: length) else { return nil }
+        guard let data = try fileHandle.read(upToCount: length) else {
+            return nil
+        }
         guard data.count == length else { return nil }
 
         var findHex = ""
@@ -756,7 +837,8 @@ struct ContentView: View {
             let numWildcards = length / 4
             var wildcardIndices: [Int] = []
             if length > 2 {
-                wildcardIndices = Array((1...(length - 2)).shuffled().prefix(numWildcards))
+                wildcardIndices = Array(
+                    (1...(length - 2)).shuffled().prefix(numWildcards))
             }
 
             for index in wildcardIndices {
@@ -767,7 +849,9 @@ struct ContentView: View {
         }
 
         return (
-            findHex, String(repeating: "00 ", count: length).trimmingCharacters(in: .whitespaces)
+            findHex,
+            String(repeating: "00 ", count: length).trimmingCharacters(
+                in: .whitespaces)
         )
     }
 
@@ -783,7 +867,8 @@ struct ContentView: View {
         let median: Double
         let count = sortedValues.count
         if count % 2 == 0 {
-            median = (sortedValues[count / 2 - 1] + sortedValues[count / 2]) / 2.0
+            median =
+                (sortedValues[count / 2 - 1] + sortedValues[count / 2]) / 2.0
         } else {
             median = sortedValues[count / 2]
         }
@@ -794,14 +879,18 @@ struct ContentView: View {
         let mad: Double
         let devCount = sortedDeviations.count
         if devCount % 2 == 0 {
-            mad = (sortedDeviations[devCount / 2 - 1] + sortedDeviations[devCount / 2]) / 2.0
+            mad =
+                (sortedDeviations[devCount / 2 - 1]
+                    + sortedDeviations[devCount / 2]) / 2.0
         } else {
             mad = sortedDeviations[devCount / 2]
         }
 
         let threshold = 2.5 * mad
 
-        let filteredValues = sortedValues.filter { abs($0 - median) <= threshold }
+        let filteredValues = sortedValues.filter {
+            abs($0 - median) <= threshold
+        }
 
         if filteredValues.count < values.count / 2 {
             let lenientThreshold = 3.5 * mad
@@ -844,7 +933,10 @@ struct ContentView: View {
                     Button("Import") {
                         onImport(pasteText)
                     }
-                    .disabled(pasteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(
+                        pasteText.trimmingCharacters(
+                            in: .whitespacesAndNewlines
+                        ).isEmpty)
                 }
             }
             .padding()
@@ -890,7 +982,9 @@ struct BenchmarkResultsView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .frame(minWidth: 800, maxWidth: .infinity, minHeight: 600, maxHeight: .infinity)
+        .frame(
+            minWidth: 800, maxWidth: .infinity, minHeight: 600,
+            maxHeight: .infinity)
     }
 
     private var tableView: some View {
@@ -914,13 +1008,20 @@ struct BenchmarkResultsView: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    let groupedResults = Dictionary(grouping: results) { $0.patternSize }
+                    let groupedResults = Dictionary(grouping: results) {
+                        $0.patternSize
+                    }
                     let sortedSizes = groupedResults.keys.sorted()
 
-                    ForEach(Array(sortedSizes.enumerated()), id: \.element) { index, patternSize in
+                    ForEach(Array(sortedSizes.enumerated()), id: \.element) {
+                        index, patternSize in
                         let sizeResults = groupedResults[patternSize] ?? []
-                        let withoutWildcards = sizeResults.first { !$0.hasWildcards }
-                        let withWildcards = sizeResults.first { $0.hasWildcards }
+                        let withoutWildcards = sizeResults.first {
+                            !$0.hasWildcards
+                        }
+                        let withWildcards = sizeResults.first {
+                            $0.hasWildcards
+                        }
 
                         HStack {
                             Text("\(patternSize) bytes")
@@ -938,7 +1039,9 @@ struct BenchmarkResultsView: View {
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 8)
-                        .background(index % 2 == 0 ? Color.clear : Color.gray.opacity(0.05))
+                        .background(
+                            index % 2 == 0
+                                ? Color.clear : Color.gray.opacity(0.05))
 
                         Divider()
                     }
@@ -964,10 +1067,12 @@ struct BenchmarkResultsView: View {
                 let maxTicks = 8
                 let domainMin = 0.0
                 let step = niceTickStep(
-                    minValue: domainMin, maxValue: maxDuration, maxTicks: maxTicks)
+                    minValue: domainMin, maxValue: maxDuration,
+                    maxTicks: maxTicks)
                 let gridStart = 0.0
                 let gridEnd = ceil(maxDuration / step) * step
-                let gridCount = max(2, Int(round((gridEnd - gridStart) / step)) + 1)
+                let gridCount = max(
+                    2, Int(round((gridEnd - gridStart) / step)) + 1)
 
                 let totalSpacing = CGFloat(results.count - 1) * 6
                 let availableWidth = width - totalSpacing
@@ -980,10 +1085,12 @@ struct BenchmarkResultsView: View {
                                 ForEach(0..<gridCount, id: \.self) { i in
                                     let value = gridEnd - Double(i) * step
                                     HStack {
-                                        Text(formatTick(value: value, step: step))
-                                            .font(.caption)
-                                            .foregroundColor(.gray)
-                                            .frame(width: 60, alignment: .trailing)
+                                        Text(
+                                            formatTick(value: value, step: step)
+                                        )
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                        .frame(width: 60, alignment: .trailing)
                                         Rectangle()
                                             .fill(Color.gray.opacity(0.2))
                                             .frame(height: 1)
@@ -1000,7 +1107,8 @@ struct BenchmarkResultsView: View {
                                     let normalized =
                                         (result.duration - gridStart)
                                         / max(0.0001, (gridEnd - gridStart))
-                                    let barHeight = max(0, min(1, normalized)) * height
+                                    let barHeight =
+                                        max(0, min(1, normalized)) * height
 
                                     VStack(spacing: 2) {
                                         Text(result.formattedDuration)
@@ -1009,9 +1117,17 @@ struct BenchmarkResultsView: View {
                                             .fontWeight(.medium)
 
                                         Rectangle()
-                                            .fill(result.hasWildcards ? Color.purple : Color.pink)
-                                            .frame(width: barWidth, height: max(barHeight, 1))
-                                            .animation(.easeInOut(duration: 0.5), value: barHeight)
+                                            .fill(
+                                                result.hasWildcards
+                                                    ? Color.purple : Color.pink
+                                            )
+                                            .frame(
+                                                width: barWidth,
+                                                height: max(barHeight, 1)
+                                            )
+                                            .animation(
+                                                .easeInOut(duration: 0.5),
+                                                value: barHeight)
                                     }
                                     .frame(width: barWidth, alignment: .center)
                                 }
@@ -1028,7 +1144,10 @@ struct BenchmarkResultsView: View {
                                         .foregroundColor(.primary)
                                     Text(result.hasWildcards ? "W" : "N")
                                         .font(.caption2)
-                                        .foregroundColor(result.hasWildcards ? .purple : .pink)
+                                        .foregroundColor(
+                                            result.hasWildcards
+                                                ? .purple : .pink
+                                        )
                                         .fontWeight(.semibold)
                                 }
                                 .frame(width: barWidth, alignment: .center)
@@ -1065,7 +1184,9 @@ struct BenchmarkResultsView: View {
 }
 
 extension BenchmarkResultsView {
-    private func niceTickStep(minValue: Double, maxValue: Double, maxTicks: Int) -> Double {
+    private func niceTickStep(minValue: Double, maxValue: Double, maxTicks: Int)
+        -> Double
+    {
         let range = max(maxValue - minValue, 1e-6)
         let approximate = range / Double(max(maxTicks - 1, 1))
         let exponent = floor(log10(approximate))

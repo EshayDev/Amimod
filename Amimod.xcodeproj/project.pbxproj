@@ -7,14 +7,18 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		83C086182E4964E100166539 /* 08.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C086172E4964E100166539 /* 08.m4a */; };
-		83C7F7E82E0258D300584930 /* 04.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E32E0258D300584930 /* 04.m4a */; };
-		83C7F7E92E0258D300584930 /* 05.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E42E0258D300584930 /* 05.m4a */; };
-		83C7F7EA2E0258D300584930 /* 01.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E02E0258D300584930 /* 01.m4a */; };
-		83C7F7EB2E0258D300584930 /* 07.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E62E0258D300584930 /* 07.m4a */; };
-		83C7F7EC2E0258D300584930 /* 06.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E52E0258D300584930 /* 06.m4a */; };
-		83C7F7ED2E0258D300584930 /* 02.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E12E0258D300584930 /* 02.m4a */; };
-		83C7F7EE2E0258D300584930 /* 03.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 83C7F7E22E0258D300584930 /* 03.m4a */; };
+		83CEC5CB2E4C458B00BA505C /* LibXMLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C62E4C458B00BA505C /* LibXMLoader.swift */; };
+		83CEC5CC2E4C458B00BA505C /* LibXMAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C52E4C458B00BA505C /* LibXMAPI.swift */; };
+		83CEC5CD2E4C458B00BA505C /* LibXMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C72E4C458B00BA505C /* LibXMPlayer.swift */; };
+		83CEC5CE2E4C458B00BA505C /* LibXMTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C82E4C458B00BA505C /* LibXMTypes.swift */; };
+		83CEC6022E4C477E00BA505C /* 04.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FC2E4C477E00BA505C /* 04.xm */; };
+		83CEC6032E4C477E00BA505C /* 01.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5F92E4C477E00BA505C /* 01.xm */; };
+		83CEC6042E4C477E00BA505C /* 07.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FF2E4C477E00BA505C /* 07.xm */; };
+		83CEC6052E4C477E00BA505C /* 08.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC6002E4C477E00BA505C /* 08.mod */; };
+		83CEC6062E4C477E00BA505C /* 06.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FE2E4C477E00BA505C /* 06.xm */; };
+		83CEC6072E4C477E00BA505C /* 02.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FA2E4C477E00BA505C /* 02.xm */; };
+		83CEC6082E4C477E00BA505C /* 03.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FB2E4C477E00BA505C /* 03.xm */; };
+		83CEC6092E4C477E00BA505C /* 05.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FD2E4C477E00BA505C /* 05.xm */; };
 		83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32D2B42D2740094C668 /* AmimodApp.swift */; };
 		83DCD3302B42D2740094C668 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32F2B42D2740094C668 /* ContentView.swift */; };
 		83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD3312B42D2750094C668 /* Assets.xcassets */; };
@@ -23,14 +27,18 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		83C086172E4964E100166539 /* 08.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 08.m4a; sourceTree = "<group>"; };
-		83C7F7E02E0258D300584930 /* 01.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 01.m4a; sourceTree = "<group>"; };
-		83C7F7E12E0258D300584930 /* 02.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 02.m4a; sourceTree = "<group>"; };
-		83C7F7E22E0258D300584930 /* 03.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 03.m4a; sourceTree = "<group>"; };
-		83C7F7E32E0258D300584930 /* 04.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 04.m4a; sourceTree = "<group>"; };
-		83C7F7E42E0258D300584930 /* 05.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 05.m4a; sourceTree = "<group>"; };
-		83C7F7E52E0258D300584930 /* 06.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 06.m4a; sourceTree = "<group>"; };
-		83C7F7E62E0258D300584930 /* 07.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = 07.m4a; sourceTree = "<group>"; };
+		83CEC5C52E4C458B00BA505C /* LibXMAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMAPI.swift; sourceTree = "<group>"; };
+		83CEC5C62E4C458B00BA505C /* LibXMLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMLoader.swift; sourceTree = "<group>"; };
+		83CEC5C72E4C458B00BA505C /* LibXMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMPlayer.swift; sourceTree = "<group>"; };
+		83CEC5C82E4C458B00BA505C /* LibXMTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMTypes.swift; sourceTree = "<group>"; };
+		83CEC5F92E4C477E00BA505C /* 01.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 01.xm; sourceTree = "<group>"; };
+		83CEC5FA2E4C477E00BA505C /* 02.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 02.xm; sourceTree = "<group>"; };
+		83CEC5FB2E4C477E00BA505C /* 03.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 03.xm; sourceTree = "<group>"; };
+		83CEC5FC2E4C477E00BA505C /* 04.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 04.xm; sourceTree = "<group>"; };
+		83CEC5FD2E4C477E00BA505C /* 05.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 05.xm; sourceTree = "<group>"; };
+		83CEC5FE2E4C477E00BA505C /* 06.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 06.xm; sourceTree = "<group>"; };
+		83CEC5FF2E4C477E00BA505C /* 07.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 07.xm; sourceTree = "<group>"; };
+		83CEC6002E4C477E00BA505C /* 08.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 08.mod; sourceTree = "<group>"; };
 		83DCD32D2B42D2740094C668 /* AmimodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmimodApp.swift; sourceTree = "<group>"; };
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		83DCD3312B42D2750094C668 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -51,17 +59,28 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		83C7F7E72E0258D300584930 /* Music */ = {
+		83CEC5CA2E4C458B00BA505C /* libxm */ = {
 			isa = PBXGroup;
 			children = (
-				83C7F7E02E0258D300584930 /* 01.m4a */,
-				83C7F7E12E0258D300584930 /* 02.m4a */,
-				83C7F7E22E0258D300584930 /* 03.m4a */,
-				83C7F7E32E0258D300584930 /* 04.m4a */,
-				83C7F7E42E0258D300584930 /* 05.m4a */,
-				83C7F7E52E0258D300584930 /* 06.m4a */,
-				83C7F7E62E0258D300584930 /* 07.m4a */,
-				83C086172E4964E100166539 /* 08.m4a */,
+				83CEC5C52E4C458B00BA505C /* LibXMAPI.swift */,
+				83CEC5C62E4C458B00BA505C /* LibXMLoader.swift */,
+				83CEC5C72E4C458B00BA505C /* LibXMPlayer.swift */,
+				83CEC5C82E4C458B00BA505C /* LibXMTypes.swift */,
+			);
+			path = libxm;
+			sourceTree = "<group>";
+		};
+		83CEC6012E4C477E00BA505C /* Music */ = {
+			isa = PBXGroup;
+			children = (
+				83CEC5F92E4C477E00BA505C /* 01.xm */,
+				83CEC5FA2E4C477E00BA505C /* 02.xm */,
+				83CEC5FB2E4C477E00BA505C /* 03.xm */,
+				83CEC5FC2E4C477E00BA505C /* 04.xm */,
+				83CEC5FD2E4C477E00BA505C /* 05.xm */,
+				83CEC5FE2E4C477E00BA505C /* 06.xm */,
+				83CEC5FF2E4C477E00BA505C /* 07.xm */,
+				83CEC6002E4C477E00BA505C /* 08.mod */,
 			);
 			path = Music;
 			sourceTree = "<group>";
@@ -70,7 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				83DCD32C2B42D2740094C668 /* Amimod */,
-				83C7F7E72E0258D300584930 /* Music */,
+				83CEC6012E4C477E00BA505C /* Music */,
 				83F7BDE42E157B370089A849 /* Amimod.app */,
 			);
 			sourceTree = "<group>";
@@ -78,6 +97,7 @@
 		83DCD32C2B42D2740094C668 /* Amimod */ = {
 			isa = PBXGroup;
 			children = (
+				83CEC5CA2E4C458B00BA505C /* libxm */,
 				83DCD34B2B42D7DD0094C668 /* HexPatch.swift */,
 				83DCD3462B42D4820094C668 /* AudioManager.swift */,
 				83DCD32D2B42D2740094C668 /* AmimodApp.swift */,
@@ -147,14 +167,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				83C7F7E82E0258D300584930 /* 04.m4a in Resources */,
-				83C7F7E92E0258D300584930 /* 05.m4a in Resources */,
-				83C7F7EA2E0258D300584930 /* 01.m4a in Resources */,
-				83C7F7EB2E0258D300584930 /* 07.m4a in Resources */,
-				83C7F7EC2E0258D300584930 /* 06.m4a in Resources */,
-				83C7F7ED2E0258D300584930 /* 02.m4a in Resources */,
-				83C7F7EE2E0258D300584930 /* 03.m4a in Resources */,
-				83C086182E4964E100166539 /* 08.m4a in Resources */,
+				83CEC6022E4C477E00BA505C /* 04.xm in Resources */,
+				83CEC6032E4C477E00BA505C /* 01.xm in Resources */,
+				83CEC6042E4C477E00BA505C /* 07.xm in Resources */,
+				83CEC6052E4C477E00BA505C /* 08.mod in Resources */,
+				83CEC6062E4C477E00BA505C /* 06.xm in Resources */,
+				83CEC6072E4C477E00BA505C /* 02.xm in Resources */,
+				83CEC6082E4C477E00BA505C /* 03.xm in Resources */,
+				83CEC6092E4C477E00BA505C /* 05.xm in Resources */,
 				83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -170,6 +190,10 @@
 				83DCD3302B42D2740094C668 /* ContentView.swift in Sources */,
 				83DCD34C2B42D7DD0094C668 /* HexPatch.swift in Sources */,
 				83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */,
+				83CEC5CB2E4C458B00BA505C /* LibXMLoader.swift in Sources */,
+				83CEC5CC2E4C458B00BA505C /* LibXMAPI.swift in Sources */,
+				83CEC5CD2E4C458B00BA505C /* LibXMPlayer.swift in Sources */,
+				83CEC5CE2E4C458B00BA505C /* LibXMTypes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

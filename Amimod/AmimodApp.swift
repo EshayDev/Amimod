@@ -13,7 +13,9 @@ struct AmimodApp: App {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
-    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
+    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication)
+        -> Bool
+    {
         return true
     }
 
