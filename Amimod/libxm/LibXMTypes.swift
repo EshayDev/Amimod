@@ -368,8 +368,7 @@ public enum XMMacros {
     {
         mod.numInstruments
     }
-    @inline(__always) public static func maxLoopCount(_ mod: XMModule) -> UInt8
-    { mod.maxLoopCount }
+    @inline(__always) public static func maxLoopCount(_ mod: XMModule) -> UInt8 { mod.maxLoopCount }
     @inline(__always) public static func amigaFrequencies(_ mod: XMModule)
         -> Bool
     {

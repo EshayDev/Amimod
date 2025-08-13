@@ -204,8 +204,7 @@ public class HexPatch {
         }
     }
 
-    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64]
-    {
+    private func findMatches(in url: URL, pattern: [UInt8?]) throws -> [UInt64] {
         let fileSize =
             try FileManager.default.attributesOfItem(atPath: url.path)[.size]
             as! UInt64

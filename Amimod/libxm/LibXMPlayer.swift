@@ -68,8 +68,7 @@ extension LibXMPlayer {
         if v < 0 { v = 0 }
     }
     @inline(__always)
-    fileprivate static func XM_LERP(_ u: Float, _ v: Float, _ t: Float) -> Float
-    { u + t * (v - u) }
+    fileprivate static func XM_LERP(_ u: Float, _ v: Float, _ t: Float) -> Float { u + t * (v - u) }
 
     fileprivate static func xm_waveform(_ waveform: UInt8, _ step: UInt8)
         -> Int8
@@ -185,8 +184,7 @@ extension LibXMPlayer {
         return UInt32(4.0 * amigaClockHz / (p * 2.0))
     }
 
-    fileprivate static func xm_period(_ ctx: XMContext, _ note: Int16) -> UInt16
-    {
+    fileprivate static func xm_period(_ ctx: XMContext, _ note: Int16) -> UInt16 {
         return ctx.module.amigaFrequencies
             ? xm_amiga_period(note) : xm_linear_period(note)
     }

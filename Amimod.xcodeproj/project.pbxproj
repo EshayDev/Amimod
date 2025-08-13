@@ -7,18 +7,24 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		83B5A83F2E4C679600B0D79C /* 08.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8362E4C679600B0D79C /* 08.mod */; };
+		83B5A8402E4C679600B0D79C /* 04.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8322E4C679600B0D79C /* 04.xm */; };
+		83B5A8412E4C679600B0D79C /* 07.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8352E4C679600B0D79C /* 07.xm */; };
+		83B5A8432E4C679600B0D79C /* 05.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8332E4C679600B0D79C /* 05.xm */; };
+		83B5A8442E4C679600B0D79C /* 10.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8382E4C679600B0D79C /* 10.mod */; };
+		83B5A8452E4C679600B0D79C /* 02.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8302E4C679600B0D79C /* 02.xm */; };
+		83B5A8462E4C679600B0D79C /* 06.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8342E4C679600B0D79C /* 06.xm */; };
+		83B5A8472E4C679600B0D79C /* 03.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8312E4C679600B0D79C /* 03.xm */; };
+		83B5A8482E4C679600B0D79C /* 11.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8392E4C679600B0D79C /* 11.mod */; };
+		83B5A8492E4C679600B0D79C /* 13.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A83B2E4C679600B0D79C /* 13.xm */; };
+		83B5A84A2E4C679600B0D79C /* 09.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A8372E4C679600B0D79C /* 09.mod */; };
+		83B5A84B2E4C679600B0D79C /* 01.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A82F2E4C679600B0D79C /* 01.xm */; };
+		83B5A84C2E4C679600B0D79C /* 12.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A83A2E4C679600B0D79C /* 12.mod */; };
+		83B5A84D2E4C679600B0D79C /* 14.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83B5A83C2E4C679600B0D79C /* 14.xm */; };
 		83CEC5CB2E4C458B00BA505C /* LibXMLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C62E4C458B00BA505C /* LibXMLoader.swift */; };
 		83CEC5CC2E4C458B00BA505C /* LibXMAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C52E4C458B00BA505C /* LibXMAPI.swift */; };
 		83CEC5CD2E4C458B00BA505C /* LibXMPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C72E4C458B00BA505C /* LibXMPlayer.swift */; };
 		83CEC5CE2E4C458B00BA505C /* LibXMTypes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83CEC5C82E4C458B00BA505C /* LibXMTypes.swift */; };
-		83CEC6022E4C477E00BA505C /* 04.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FC2E4C477E00BA505C /* 04.xm */; };
-		83CEC6032E4C477E00BA505C /* 01.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5F92E4C477E00BA505C /* 01.xm */; };
-		83CEC6042E4C477E00BA505C /* 07.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FF2E4C477E00BA505C /* 07.xm */; };
-		83CEC6052E4C477E00BA505C /* 08.mod in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC6002E4C477E00BA505C /* 08.mod */; };
-		83CEC6062E4C477E00BA505C /* 06.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FE2E4C477E00BA505C /* 06.xm */; };
-		83CEC6072E4C477E00BA505C /* 02.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FA2E4C477E00BA505C /* 02.xm */; };
-		83CEC6082E4C477E00BA505C /* 03.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FB2E4C477E00BA505C /* 03.xm */; };
-		83CEC6092E4C477E00BA505C /* 05.xm in Resources */ = {isa = PBXBuildFile; fileRef = 83CEC5FD2E4C477E00BA505C /* 05.xm */; };
 		83DCD32E2B42D2740094C668 /* AmimodApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32D2B42D2740094C668 /* AmimodApp.swift */; };
 		83DCD3302B42D2740094C668 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83DCD32F2B42D2740094C668 /* ContentView.swift */; };
 		83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 83DCD3312B42D2750094C668 /* Assets.xcassets */; };
@@ -27,18 +33,24 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		83B5A82F2E4C679600B0D79C /* 01.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 01.xm; sourceTree = "<group>"; };
+		83B5A8302E4C679600B0D79C /* 02.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 02.xm; sourceTree = "<group>"; };
+		83B5A8312E4C679600B0D79C /* 03.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 03.xm; sourceTree = "<group>"; };
+		83B5A8322E4C679600B0D79C /* 04.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 04.xm; sourceTree = "<group>"; };
+		83B5A8332E4C679600B0D79C /* 05.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 05.xm; sourceTree = "<group>"; };
+		83B5A8342E4C679600B0D79C /* 06.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 06.xm; sourceTree = "<group>"; };
+		83B5A8352E4C679600B0D79C /* 07.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 07.xm; sourceTree = "<group>"; };
+		83B5A8362E4C679600B0D79C /* 08.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 08.mod; sourceTree = "<group>"; };
+		83B5A8372E4C679600B0D79C /* 09.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 09.mod; sourceTree = "<group>"; };
+		83B5A8382E4C679600B0D79C /* 10.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 10.mod; sourceTree = "<group>"; };
+		83B5A8392E4C679600B0D79C /* 11.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 11.mod; sourceTree = "<group>"; };
+		83B5A83A2E4C679600B0D79C /* 12.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 12.mod; sourceTree = "<group>"; };
+		83B5A83B2E4C679600B0D79C /* 13.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 13.xm; sourceTree = "<group>"; };
+		83B5A83C2E4C679600B0D79C /* 14.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 14.xm; sourceTree = "<group>"; };
 		83CEC5C52E4C458B00BA505C /* LibXMAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMAPI.swift; sourceTree = "<group>"; };
 		83CEC5C62E4C458B00BA505C /* LibXMLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMLoader.swift; sourceTree = "<group>"; };
 		83CEC5C72E4C458B00BA505C /* LibXMPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMPlayer.swift; sourceTree = "<group>"; };
 		83CEC5C82E4C458B00BA505C /* LibXMTypes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibXMTypes.swift; sourceTree = "<group>"; };
-		83CEC5F92E4C477E00BA505C /* 01.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 01.xm; sourceTree = "<group>"; };
-		83CEC5FA2E4C477E00BA505C /* 02.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 02.xm; sourceTree = "<group>"; };
-		83CEC5FB2E4C477E00BA505C /* 03.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 03.xm; sourceTree = "<group>"; };
-		83CEC5FC2E4C477E00BA505C /* 04.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 04.xm; sourceTree = "<group>"; };
-		83CEC5FD2E4C477E00BA505C /* 05.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 05.xm; sourceTree = "<group>"; };
-		83CEC5FE2E4C477E00BA505C /* 06.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 06.xm; sourceTree = "<group>"; };
-		83CEC5FF2E4C477E00BA505C /* 07.xm */ = {isa = PBXFileReference; lastKnownFileType = file; path = 07.xm; sourceTree = "<group>"; };
-		83CEC6002E4C477E00BA505C /* 08.mod */ = {isa = PBXFileReference; lastKnownFileType = file; path = 08.mod; sourceTree = "<group>"; };
 		83DCD32D2B42D2740094C668 /* AmimodApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmimodApp.swift; sourceTree = "<group>"; };
 		83DCD32F2B42D2740094C668 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		83DCD3312B42D2750094C668 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -59,6 +71,27 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		83B5A83E2E4C679600B0D79C /* Music */ = {
+			isa = PBXGroup;
+			children = (
+				83B5A82F2E4C679600B0D79C /* 01.xm */,
+				83B5A8302E4C679600B0D79C /* 02.xm */,
+				83B5A8312E4C679600B0D79C /* 03.xm */,
+				83B5A8322E4C679600B0D79C /* 04.xm */,
+				83B5A8332E4C679600B0D79C /* 05.xm */,
+				83B5A8342E4C679600B0D79C /* 06.xm */,
+				83B5A8352E4C679600B0D79C /* 07.xm */,
+				83B5A8362E4C679600B0D79C /* 08.mod */,
+				83B5A8372E4C679600B0D79C /* 09.mod */,
+				83B5A8382E4C679600B0D79C /* 10.mod */,
+				83B5A8392E4C679600B0D79C /* 11.mod */,
+				83B5A83A2E4C679600B0D79C /* 12.mod */,
+				83B5A83B2E4C679600B0D79C /* 13.xm */,
+				83B5A83C2E4C679600B0D79C /* 14.xm */,
+			);
+			path = Music;
+			sourceTree = "<group>";
+		};
 		83CEC5CA2E4C458B00BA505C /* libxm */ = {
 			isa = PBXGroup;
 			children = (
@@ -70,26 +103,11 @@
 			path = libxm;
 			sourceTree = "<group>";
 		};
-		83CEC6012E4C477E00BA505C /* Music */ = {
-			isa = PBXGroup;
-			children = (
-				83CEC5F92E4C477E00BA505C /* 01.xm */,
-				83CEC5FA2E4C477E00BA505C /* 02.xm */,
-				83CEC5FB2E4C477E00BA505C /* 03.xm */,
-				83CEC5FC2E4C477E00BA505C /* 04.xm */,
-				83CEC5FD2E4C477E00BA505C /* 05.xm */,
-				83CEC5FE2E4C477E00BA505C /* 06.xm */,
-				83CEC5FF2E4C477E00BA505C /* 07.xm */,
-				83CEC6002E4C477E00BA505C /* 08.mod */,
-			);
-			path = Music;
-			sourceTree = "<group>";
-		};
 		83DCD3212B42D2740094C668 = {
 			isa = PBXGroup;
 			children = (
 				83DCD32C2B42D2740094C668 /* Amimod */,
-				83CEC6012E4C477E00BA505C /* Music */,
+				83B5A83E2E4C679600B0D79C /* Music */,
 				83F7BDE42E157B370089A849 /* Amimod.app */,
 			);
 			sourceTree = "<group>";
@@ -167,14 +185,20 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				83CEC6022E4C477E00BA505C /* 04.xm in Resources */,
-				83CEC6032E4C477E00BA505C /* 01.xm in Resources */,
-				83CEC6042E4C477E00BA505C /* 07.xm in Resources */,
-				83CEC6052E4C477E00BA505C /* 08.mod in Resources */,
-				83CEC6062E4C477E00BA505C /* 06.xm in Resources */,
-				83CEC6072E4C477E00BA505C /* 02.xm in Resources */,
-				83CEC6082E4C477E00BA505C /* 03.xm in Resources */,
-				83CEC6092E4C477E00BA505C /* 05.xm in Resources */,
+				83B5A83F2E4C679600B0D79C /* 08.mod in Resources */,
+				83B5A8402E4C679600B0D79C /* 04.xm in Resources */,
+				83B5A8412E4C679600B0D79C /* 07.xm in Resources */,
+				83B5A8432E4C679600B0D79C /* 05.xm in Resources */,
+				83B5A8442E4C679600B0D79C /* 10.mod in Resources */,
+				83B5A8452E4C679600B0D79C /* 02.xm in Resources */,
+				83B5A8462E4C679600B0D79C /* 06.xm in Resources */,
+				83B5A8472E4C679600B0D79C /* 03.xm in Resources */,
+				83B5A8482E4C679600B0D79C /* 11.mod in Resources */,
+				83B5A8492E4C679600B0D79C /* 13.xm in Resources */,
+				83B5A84A2E4C679600B0D79C /* 09.mod in Resources */,
+				83B5A84B2E4C679600B0D79C /* 01.xm in Resources */,
+				83B5A84C2E4C679600B0D79C /* 12.mod in Resources */,
+				83B5A84D2E4C679600B0D79C /* 14.xm in Resources */,
 				83DCD3322B42D2750094C668 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

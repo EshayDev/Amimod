@@ -6,7 +6,6 @@ class AudioManager: NSObject, ObservableObject {
     static let audioManager = AudioManager()
     @AppStorage("isMusicPaused") var isPaused: Bool = false
 
-    // libxm-based engine playback
     private let engine = AVAudioEngine()
     private var sourceNode: AVAudioSourceNode?
     private var ctx: XMContext?
@@ -19,14 +18,12 @@ class AudioManager: NSObject, ObservableObject {
     private var loopsCompleted: Int = 0
     private var shouldStopAfterFade: Bool = false
 
-    // Playlist management
-    private var musicFiles: [URL] = []  // file URLs inside bundle
+    private var musicFiles: [URL] = []
     private var shuffledPlaylist: [URL] = []
     private var currentTrackIndex: Int = 0
 
     override init() {
         super.init()
-        // Recommended defaults for mixing
         setRamping(true)
         loadMusicFiles()
         loadCurrentTrack()
@@ -82,8 +79,6 @@ class AudioManager: NSObject, ObservableObject {
         moduleData = nil
     }
 
-    // MARK: - libxm Engine Controls
-
     private func startPlayingModule(fileURL url: URL) {
         guard sourceNode == nil else { return }
         guard let data = try? Data(contentsOf: url),
@@ -104,36 +99,67 @@ class AudioManager: NSObject, ObservableObject {
         self.fadeRemainingFrames = -1
         self.shouldStopAfterFade = false
 
-        // Per-track tuning (matches libxm/Main.swift behavior for 01-08)
         let lname = url.deletingPathExtension().lastPathComponent.lowercased()
         if lname == "01" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "02" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "03" {
             self.setAllowedLoops(2)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "04" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "05" {
             self.setAllowedLoops(3)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "06" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "07" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
         } else if lname == "08" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(false)
-        } else {
-            // Defaults
+            self.setPanningType(4)
+        } else if lname == "09" {
+            self.setAllowedLoops(1)
+            self.setLinearInterpolation(false)
+            self.setPanningType(4)
+        } else if lname == "10" {
+            self.setAllowedLoops(0)
+            self.setLinearInterpolation(false)
+            self.setPanningType(4)
+        } else if lname == "11" {
+            self.setAllowedLoops(1)
+            self.setLinearInterpolation(false)
+            self.setPanningType(4)
+        } else if lname == "12" {
+            self.setAllowedLoops(0)
+            self.setLinearInterpolation(false)
+            self.setPanningType(4)
+        } else if lname == "13" {
             self.setAllowedLoops(0)
             self.setLinearInterpolation(true)
+            self.setPanningType(8)
+        } else if lname == "14" {
+            self.setAllowedLoops(0)
+            self.setLinearInterpolation(false)
+            self.setPanningType(8)
+        } else {
+            self.setAllowedLoops(0)
+            self.setLinearInterpolation(true)
+            self.setPanningType(8)
         }
 
         let srcFormat = AVAudioFormat(
@@ -151,7 +177,6 @@ class AudioManager: NSObject, ObservableObject {
             var left: [Float] = Array(repeating: 0, count: frames)
             var right: [Float] = Array(repeating: 0, count: frames)
 
-            // Pause gating: keep context position stable and output silence
             if !strongSelf.isPaused {
                 LibXM.generateSamplesNoninterleaved(
                     &context, left: &left, right: &right, numsamples: frames)
@@ -225,12 +250,10 @@ class AudioManager: NSObject, ObservableObject {
 
             let abl = UnsafeMutableAudioBufferListPointer(audioBufferList)
             if abl.count >= 2 {
-                if let ptrL = abl[0].mData?.assumingMemoryBound(to: Float.self)
-                {
+                if let ptrL = abl[0].mData?.assumingMemoryBound(to: Float.self) {
                     ptrL.assign(from: left, count: frames)
                 }
-                if let ptrR = abl[1].mData?.assumingMemoryBound(to: Float.self)
-                {
+                if let ptrR = abl[1].mData?.assumingMemoryBound(to: Float.self) {
                     ptrR.assign(from: right, count: frames)
                 }
             } else if abl.count == 1 {
@@ -303,8 +326,6 @@ class AudioManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Public Controls
-
     func togglePause() {
         if isPaused {
             isPaused = false
@@ -312,6 +333,27 @@ class AudioManager: NSObject, ObservableObject {
         } else {
             isPaused = true
             pause()
+        }
+    }
+
+    func nextTrack() {
+        fadeRemainingFrames = -1
+        shouldStopAfterFade = false
+        playNextTrack()
+    }
+
+    func previousTrack() {
+        fadeRemainingFrames = -1
+        shouldStopAfterFade = false
+
+        guard !shuffledPlaylist.isEmpty else { return }
+        currentTrackIndex -= 1
+        if currentTrackIndex < 0 {
+            currentTrackIndex = max(0, shuffledPlaylist.count - 1)
+        }
+        loadCurrentTrack()
+        if !isPaused {
+            resume()
         }
     }
 

@@ -89,7 +89,6 @@ This makes it easy to create generic patches that work across multiple app versi
 When multiple matches are found:
 - Shows match count before applying
 - Asks for confirmation
-- Limits to 50,000 matches per pattern to prevent performance issues
 
 ### Batch Hex Notes
 
@@ -130,22 +129,17 @@ to
 - Patching is in-place. Always work on a copy and keep backups
 - Code signing is not handled by Amimod. Re-sign externally if needed
 - Replace and Find patterns must be the same length
-- Too many matches (> 50,000 per pattern) are rejected for safety
+- Too many matches (> 50,000 per pattern) are rejected for safety and performance
 - Executable discovery only scans the bundle locations listed above
-
-## Troubleshooting
-- "Pattern not found": verify the pattern and byte length, and consider wildcards
-- "Invalid wildcard usage in replace pattern": only use `??` in Replace where Find used `??`
-- "No executables listed": ensure the selected bundle contains Mach-O binaries in scanned paths
 
 ## System Requirements
 
 | Component | Requirement |
 |-----------|-------------|
 | OS | macOS 11.0 (Big Sur) or later |
-| Architecture | Intel x86_64 or Apple Silicon |
-| Memory | 4GB RAM minimum |
-| Storage | 30MB free space |
+| Architecture | Intel (x86_64) or Apple Silicon (ARM64)|
+| Memory | 4GB RAM recommended |
+| Storage | 10MB free space |
 
 ## Bug Reports & Suggestions
 
@@ -181,26 +175,34 @@ SOFTWARE.
 - [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
 
-**Graphics (App Icon & Logo):**
+**Graphics:**
 - [EshayDev](https://github.com/EshayDev/)
 
 **Music:**
+- [Accel](https://demozoo.org/sceners/56884/)
 - [Andromeda](https://demozoo.org/sceners/187/)
 - [bboll](https://modarchive.org/module.php?134772)
 - [Dubmood](https://demozoo.org/sceners/520/)
 - [Dualtrax](https://demozoo.org/sceners/5763/)
+- [Estrayk](https://demozoo.org/sceners/10035/)
+- [Evelred](https://demozoo.org/sceners/428/)
+- [Graff](https://demozoo.org/sceners/12166/)
+- [LHS](https://demozoo.org/sceners/11387/)
+- [Mantronix](https://demozoo.org/sceners/791/)
 - [Quazar](https://demozoo.org/sceners/17375/)
 - [tj technoiZ](https://demozoo.org/sceners/17215/)
 - [wasp](https://demozoo.org/sceners/11697/)
 - [Zaiko](https://demozoo.org/sceners/38408/)
-- [Estrayk](https://demozoo.org/sceners/10035/)
-- [Evelred](https://demozoo.org/sceners/428/)
 
-**App Testing:**
+**Testing:**
 - [EshayDev](https://github.com/EshayDev/)
 - [Antibiotics](https://github.com/Antibioticss/)
 - [Sneethan](https://github.com/Sneethan/)
 - [BruhgDev](https://github.com/BruhgDev/)
+- [√(noham)²](https://github.com/NohamR)
+- [piratx](https://github.com/piratx)
+- ThePhantomMac
+- skizzolfs
 
 ---
 *This tool is provided free of charge. If you paid for this, you were scammed.*

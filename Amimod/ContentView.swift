@@ -386,13 +386,27 @@ struct ContentView: View {
             ToolbarItem(placement: .primaryAction) {
                 HStack {
                     Button(action: {
+                        audioManager.previousTrack()
+                    }) {
+                        Image(systemName: "backward.end.fill")
+                    }
+                    .help("Previous Song")
+
+                    Button(action: {
                         audioManager.togglePause()
                     }) {
                         Image(
                             systemName: audioManager.isPaused
-                                ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                ? "play.fill" : "pause.fill")
                     }
                     .help(audioManager.isPaused ? "Play Music" : "Pause Music")
+
+                    Button(action: {
+                        audioManager.nextTrack()
+                    }) {
+                        Image(systemName: "forward.end.fill")
+                    }
+                    .help("Next Song")
 
                     Button(action: {
                         if usingImportedPatches {
