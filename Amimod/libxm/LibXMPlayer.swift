@@ -100,8 +100,20 @@ extension LibXMPlayer {
         }
     }
 
-    fileprivate static func xm_autovibrato(_ ch: inout XMChannelContext) {
-        guard ch.instrument != nil else { return }
+    fileprivate static func xm_autovibrato(_ ctx: XMContext, _ ch: inout XMChannelContext) {
+        guard let instIdx = ch.instrument, instIdx < ctx.instruments.count else { return }
+        let instr = ctx.instruments[instIdx]
+        
+        let ticksScaled: UInt8 = UInt8(truncatingIfNeeded: (UInt32(ch.autovibratoTicks) &* UInt32(instr.vibratoRate)) / 4)
+        let wf = xm_waveform(instr.vibratoType, ticksScaled)
+        var off = Int8(Int(wf) * -Int(instr.vibratoDepth) / 128)
+        
+        if ch.autovibratoTicks < instr.vibratoSweep {
+            off = Int8(Int(off) * Int(ch.autovibratoTicks) / Int(instr.vibratoSweep))
+        }
+        
+        ch.autovibratoOffset = off
+        ch.autovibratoTicks &+= 1
     }
 
     @inline(__always)
@@ -180,7 +192,7 @@ extension LibXMPlayer {
             p *= powf(2.0, Float(arpNoteOffset) / -12.0)
             if p < 107.0 { p = 107.0 }
         }
-        let amigaClockHz: Float = ctx.module.isMOD ? 7_093_789.2 : 7_159_090.5
+        let amigaClockHz: Float = 7_093_789.2
         return UInt32(4.0 * amigaClockHz / (p * 2.0))
     }
 
@@ -260,6 +272,18 @@ extension LibXMPlayer {
             let nibble = s.volumeColumn & 0x0F
             ch.panning = UInt16(nibble) * 0x10
         }
+        if s.volumeColumn >> 4 == UInt8(XMVolumeEffect.fineSlideDown.rawValue) {
+            ch.volumeOffset = 0
+            xm_param_slide(&ch.volume, s.volumeColumn & 0x0F, XMConstants.maxVolume)
+        } else if s.volumeColumn >> 4 == UInt8(XMVolumeEffect.fineSlideUp.rawValue) {
+            ch.volumeOffset = 0
+            xm_param_slide(&ch.volume, s.volumeColumn << 4, XMConstants.maxVolume)
+        } else if s.volumeColumn >> 4 == UInt8(XMVolumeEffect.vibratoSpeed.rawValue) {
+            let speedNibble = (s.volumeColumn & 0x0F) << 4
+            if speedNibble != 0 {
+                UPDATE_EFFECT_MEMORY_XY(&ch.vibratoParam, speedNibble)
+            }
+        }
         if (s.volumeColumn >> 4)
             == UInt8(XMVolumeEffect.tonePortamento.rawValue)
         {
@@ -267,6 +291,8 @@ extension LibXMPlayer {
                 ch.tonePortamentoParam = s.volumeColumn << 4
             }
         } else if s.effectType == UInt8(XMEffect.tonePortamento.rawValue) {
+            if s.effectParam > 0 { ch.tonePortamentoParam = s.effectParam }
+        } else if s.effectType == UInt8(XMEffect.tonePortamentoVolumeSlide.rawValue) {
             if s.effectParam > 0 { ch.tonePortamentoParam = s.effectParam }
         }
 
@@ -290,14 +316,23 @@ extension LibXMPlayer {
                 &ch.volume, ch.fineVolumeSlideDownParam, XMConstants.maxVolume)
         case UInt8(XMEffect.setPanning.rawValue):
             ch.panning = UInt16(s.effectParam)
+        case UInt8(XMEffect.setSampleOffset.rawValue):
+            if s.effectParam > 0 {
+                ch.sampleOffsetParam = s.effectParam
+            }
+            ch.samplePosition = UInt32(ch.sampleOffsetParam) * 256 * XMConstants.sampleMicrosteps
+            if let smpIdx = ch.sample, smpIdx < ctx.samples.count {
+                ch.sampleOffsetInvalid = (ch.samplePosition >= (ctx.samples[smpIdx].length * XMConstants.sampleMicrosteps))
+            }
         case UInt8(XMEffect.jumpToOrder.rawValue):
             ctx.positionJump = true
             ctx.jumpDest = s.effectParam
             ctx.jumpRow = 0
         case UInt8(XMEffect.patternBreak.rawValue):
             ctx.patternBreak = true
-            let t = s.effectParam >> 4
-            ctx.jumpRow = s.effectParam &- (t &* 6)
+            let tens = s.effectParam >> 4
+            let ones = s.effectParam & 0x0F
+            ctx.jumpRow = tens * 10 + ones
         case UInt8(XMEffect.setTempo.rawValue):
             ctx.currentTempo = s.effectParam
         case UInt8(XMEffect.setBPM.rawValue):
@@ -366,10 +401,7 @@ extension LibXMPlayer {
         if diff < -Int32(incr) { diff = -Int32(incr) }
         xm_pitch_slide(&ch, Int16(diff))
         if ch.glissandoControlParam != 0 {
-            var tmp = ch
-            xm_round_period_to_semitone(ctx, &tmp)
-            ch.period = tmp.period
-            ch.glissandoControlError = tmp.glissandoControlError
+            xm_round_period_to_semitone(ctx, &ch)
         }
     }
 
@@ -452,10 +484,7 @@ extension LibXMPlayer {
             return
         }
         ch.shouldResetArpeggio = true
-        var tmp = ch
-        xm_round_period_to_semitone(ctx, &tmp)
-        ch.period = tmp.period
-        ch.glissandoControlError = tmp.glissandoControlError
+        xm_round_period_to_semitone(ctx, &ch)
         if t > 16 || (t % 3) == 2 {
             ch.arpNoteOffset = ch.current.effectParam & 0x0F
         } else {
@@ -500,24 +529,7 @@ extension LibXMPlayer {
     ) {
         if let instIdx = ch.instrument, instIdx < ctx.instruments.count {
             let instr = ctx.instruments[instIdx]
-            if instr.vibratoDepth != 0
-                && (instr.vibratoRate > 0
-                    || instr.vibratoType == XMConstants.waveformSquare)
-            {
-                let ticksScaled: UInt8 = UInt8(
-                    truncatingIfNeeded: (UInt32(ch.autovibratoTicks)
-                        &* UInt32(instr.vibratoRate))
-                        / 4)
-                let wf = xm_waveform(instr.vibratoType, ticksScaled)
-                var off = Int8(Int(wf) * -Int(instr.vibratoDepth) / 128)
-                if ch.autovibratoTicks < instr.vibratoSweep {
-                    off = Int8(
-                        Int(off) * Int(ch.autovibratoTicks)
-                            / Int(instr.vibratoSweep))
-                }
-                ch.autovibratoOffset = off
-                ch.autovibratoTicks &+= 1
-            }
+            xm_autovibrato(ctx, &ch)
             if !ch.sustained {
                 ch.fadeoutVolume =
                     ch.fadeoutVolume < instr.volumeFadeout
@@ -655,7 +667,7 @@ extension LibXMPlayer {
             } else {
                 ch.tremorTicks &-= 1
             }
-            ch.volumeOffset = ch.tremorOn ? 0 : Int8(XMConstants.maxVolume)
+            ch.volumeOffset = ch.tremorOn ? 0 : -Int8(XMConstants.maxVolume)
         case UInt8(XMEffect.retriggerNote.rawValue):
             if ch.current.effectParam != 0
                 && (ctx.currentTick % ch.current.effectParam) == 0
@@ -708,6 +720,11 @@ extension LibXMPlayer {
                 xm_handle_pattern_slot(ctx: &ctx, ch: &ch)
             }
             if ch.patternLoopCount > 0 { inLoop = true }
+            if ch.shouldResetArpeggio {
+                xm_pitch_slide(&ch, 0)
+                ch.shouldResetArpeggio = false
+                ch.arpNoteOffset = 0
+            }
             if ch.shouldResetVibrato && !xm_slot_has_vibrato(ch.current) {
                 ch.vibratoOffset = 0
             }
@@ -1079,7 +1096,7 @@ extension LibXMPlayer {
         } else if let smpIdx = ch.sample {
             ch.finetune = ctx.samples[smpIdx].finetune
         }
-        var note = Int16(
+        let note = Int16(
             Int(ch.origNote) + Int(ch.finetuneSampleRelativeNote(ctx)))
         if note <= 0 || note >= 120 { return }
         ch.period = xm_period(

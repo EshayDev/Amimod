@@ -7,7 +7,7 @@ class AudioManager: NSObject, ObservableObject {
     @AppStorage("isMusicPaused") var isPaused: Bool = false
 
     private let engine = AVAudioEngine()
-	private let masterGain: Float = 0.75
+	private let masterGain: Float = 0.6
     private var sourceNode: AVAudioSourceNode?
     private var ctx: XMContext?
     private var moduleData: Data?
@@ -252,10 +252,10 @@ class AudioManager: NSObject, ObservableObject {
             let abl = UnsafeMutableAudioBufferListPointer(audioBufferList)
             if abl.count >= 2 {
                 if let ptrL = abl[0].mData?.assumingMemoryBound(to: Float.self) {
-                    ptrL.assign(from: left, count: frames)
+                    ptrL.update(from: left, count: frames)
                 }
                 if let ptrR = abl[1].mData?.assumingMemoryBound(to: Float.self) {
-                    ptrR.assign(from: right, count: frames)
+                    ptrR.update(from: right, count: frames)
                 }
             } else if abl.count == 1 {
                 if let ptr = abl[0].mData?.assumingMemoryBound(to: Float.self) {

@@ -162,7 +162,7 @@ extension LibXMLoader {
         var offset = 60
 
         let potLength = readU16LE(data, offset + 4)
-        var numChannels = readU16LE(data, offset + 8)
+        let numChannels = readU16LE(data, offset + 8)
         if numChannels > UInt16(XMConstants.maxChannels) {
             NOTICE(
                 "module has too many channels (\(numChannels) > \(XMConstants.maxChannels))"
@@ -171,7 +171,7 @@ extension LibXMLoader {
         }
         out.numChannels = UInt8(numChannels)
 
-        var numPatterns = readU16LE(data, offset + 10)
+        let numPatterns = readU16LE(data, offset + 10)
         if numPatterns > UInt16(XMConstants.maxPatterns) {
             NOTICE(
                 "module has too many patterns (\(numPatterns) > \(XMConstants.maxPatterns))"
@@ -180,7 +180,7 @@ extension LibXMLoader {
         }
         out.numPatterns = numPatterns
 
-        var numInstruments = readU16LE(data, offset + 12)
+        let numInstruments = readU16LE(data, offset + 12)
         if numInstruments > UInt16(XMConstants.maxInstruments) {
             NOTICE(
                 "module has too many instruments (\(numInstruments) > \(XMConstants.maxInstruments))"
@@ -757,7 +757,7 @@ extension LibXMLoader {
     fileprivate static func loadXM0104EnvelopePoints(
         _ env: inout XMEnvelope, _ slice: Data
     ) {
-        var local = slice
+        let local = slice
         let bound = local.count
         for i in 0..<XMConstants.maxEnvelopePoints {
             let f = readU16LEBounded(local, 4 * i + 0, bound)
@@ -843,7 +843,7 @@ extension LibXMLoader {
         _ sample: inout XMSample, _ is16: inout Bool, data: Data, _ offset: Int
     ) -> Int {
         var off = offset
-        var length = readU32LE(data, off)
+        let length = readU32LE(data, off)
         sample.length = length
         sample.index = length
         let loopStart = readU32LE(data, off + 4)
@@ -1043,7 +1043,7 @@ extension LibXMLoader {
         }
 
         var slotIndex = 0
-        for row in 0..<Int(ctx.module.numRows) {
+        for _ in 0..<Int(ctx.module.numRows) {
             for ch in 0..<Int(ctx.module.numChannels) {
                 if !hasPanningEffects
                     && ctx.patternSlots[slotIndex].instrument != 0
@@ -1194,7 +1194,7 @@ private struct XMEncoder {
         }
     }
     mutating func appendArray<T>(_ array: [T]) {
-        var count = UInt32(array.count)
+        let count = UInt32(array.count)
         append(count)
         array.withUnsafeBytes { raw in
             data.append(contentsOf: raw)
