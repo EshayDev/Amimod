@@ -155,7 +155,7 @@ class AudioManager: NSObject, ObservableObject {
             self.setPanningType(8)
         } else if lname == "14" {
             self.setAllowedLoops(0)
-            self.setLinearInterpolation(false)
+            self.setLinearInterpolation(true)
             self.setPanningType(8)
         } else {
             self.setAllowedLoops(0)

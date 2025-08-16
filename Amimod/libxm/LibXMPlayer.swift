@@ -724,6 +724,8 @@ extension LibXMPlayer {
                 xm_pitch_slide(&ch, 0)
                 ch.shouldResetArpeggio = false
                 ch.arpNoteOffset = 0
+            } else {
+                ch.arpNoteOffset = 0
             }
             if ch.shouldResetVibrato && !xm_slot_has_vibrato(ch.current) {
                 ch.vibratoOffset = 0
