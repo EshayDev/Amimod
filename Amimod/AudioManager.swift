@@ -7,7 +7,7 @@ class AudioManager: NSObject, ObservableObject {
     @AppStorage("isMusicPaused") var isPaused: Bool = false
 
     private let engine = AVAudioEngine()
-	private let masterGain: Float = 0.6
+    private let masterGain: Float = 0.6
     private var sourceNode: AVAudioSourceNode?
     private var ctx: XMContext?
     private var moduleData: Data?
@@ -268,7 +268,7 @@ class AudioManager: NSObject, ObservableObject {
         self.sourceNode = node
         engine.attach(node)
         engine.connect(node, to: engine.mainMixerNode, format: srcFormat)
-		engine.mainMixerNode.outputVolume = masterGain
+        engine.mainMixerNode.outputVolume = masterGain
 
         do {
             try engine.start()
